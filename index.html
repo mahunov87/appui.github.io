@@ -3,21 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Loyalty App</title>
+    <title>Coffee Bonus</title>
     
     <!-- Core Dependencies -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <!-- Icons (Lucide) for professional UI -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
         /* --- DYNAMIC THEME ENGINE (SaaS) --- */
         :root {
-            /* Базовые цвета (будут перезаписаны JS) */
-            --theme-color: #F59E0B; /* Amber-500 */
-            --theme-bg: #FFFBEB;    /* Amber-50 */
-            --theme-text: #B45309;  /* Amber-700 */
+            /* Базовые цвета (будут перезаписаны JS из настроек бизнеса) */
+            --theme-color: #F59E0B; /* Amber-500 default */
+            --theme-bg: #FFFBEB;    /* Amber-50 default */
+            --theme-text: #B45309;  /* Amber-700 default */
         }
 
         /* Утилиты для динамических цветов */
@@ -29,12 +31,14 @@
         .shadow-theme { --tw-shadow-color: var(--theme-color) !important; }
         .ring-theme { --tw-ring-color: var(--theme-color) !important; }
 
+        /* Base styles & Typography */
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
             -webkit-tap-highlight-color: transparent;
             background-color: #F9FAFB;
         }
 
+        /* Smooth Transitions */
         .page {
             transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1), opacity 0.3s ease;
             position: absolute;
@@ -44,7 +48,7 @@
             height: 100%;
             overflow-y: auto;
             background: #F9FAFB;
-            display: none;
+            display: none; /* Hidden by default */
         }
         
         .page.active {
@@ -53,15 +57,18 @@
             z-index: 10;
         }
 
+        /* Stamp Animation */
         .stamp-enter { animation: stamp-pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         @keyframes stamp-pop {
             0% { transform: scale(0); opacity: 0; }
             100% { transform: scale(1); opacity: 1; }
         }
 
+        /* Modal Fade In */
         .fade-in { animation: fadeIn 0.2s ease-out; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
+        /* Custom Scrollbar hide */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
@@ -70,8 +77,15 @@
 
     <!-- === LOADER === -->
     <div id="loader" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white transition-opacity duration-500">
-        <div class="w-12 h-12 border-4 border-gray-200 border-t-gray-800 rounded-full animate-spin mb-4"></div>
-        <p class="text-gray-400 text-sm font-medium animate-pulse">Загрузка заведения...</p>
+        <div class="w-10 h-10 border-4 border-gray-200 border-t-gray-800 rounded-full animate-spin mb-4"></div>
+        <p class="text-gray-400 text-sm font-medium animate-pulse">Загрузка данных...</p>
+    </div>
+
+    <!-- === DESKTOP STUB === -->
+    <div id="stub-view" class="hidden fixed inset-0 z-[60] bg-gray-50 flex flex-col items-center justify-center p-6 text-center">
+        <i data-lucide="smartphone" class="w-16 h-16 text-gray-300 mb-4"></i>
+        <h2 class="text-xl font-bold mb-2">Откройте на телефоне</h2>
+        <p class="text-gray-500">Это приложение работает только внутри Telegram.</p>
     </div>
 
     <!-- === ERROR SCREEN === -->
@@ -86,28 +100,22 @@
         </button>
     </div>
 
-    <!-- === DESKTOP STUB === -->
-    <div id="stub-view" class="hidden fixed inset-0 z-[60] bg-gray-50 flex flex-col items-center justify-center p-6 text-center">
-        <i data-lucide="smartphone" class="w-16 h-16 text-gray-300 mb-4"></i>
-        <h2 class="text-xl font-bold mb-2">Откройте на телефоне</h2>
-        <p class="text-gray-500">Это приложение работает только внутри Telegram.</p>
-    </div>
-
     <!-- ================= VIEWS ================= -->
 
-    <!-- 1. HOME VIEW -->
+    <!-- 1. HOME VIEW (DASHBOARD) -->
     <div id="view-home" class="page px-5 py-6">
-        <!-- Brand Header (SaaS) -->
+        <!-- User Header (SaaS Updated) -->
         <header class="flex items-center justify-between mb-8">
             <div class="flex items-center gap-3">
                 <img id="app-logo" src="" alt="Logo" class="w-12 h-12 rounded-full object-cover border-2 border-gray-100 shadow-sm bg-white">
                 <div>
+                    <!-- Dynamic Business Name -->
                     <h1 id="app-title" class="text-xl font-black text-gray-800 tracking-tight leading-tight">Загрузка...</h1>
                     <p id="user-name" class="text-xs text-gray-500 font-medium">Привет, Гость!</p>
                 </div>
             </div>
-            <div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden">
-                <i data-lucide="user" class="w-5 h-5 text-gray-400"></i>
+            <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+                <i data-lucide="user" class="w-5 h-5 text-gray-500"></i>
             </div>
         </header>
 
@@ -119,10 +127,10 @@
                 <div class="flex justify-between items-start mb-6">
                     <div>
                         <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Ваш статус</p>
-                        <p id="user-rank" class="text-2xl font-bold text-theme">Гость</p>
+                        <p id="user-rank" class="text-2xl font-bold text-theme">Новичок</p>
                     </div>
                     <div class="text-right">
-                        <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Прогресс</p>
+                        <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Баланс</p>
                         <p class="text-2xl font-bold">
                             <span id="user-balance">0</span>
                             <span class="text-gray-500 text-lg">/<span id="target-count-display">6</span></span>
@@ -132,13 +140,13 @@
 
                 <div class="bg-white/10 rounded-2xl p-4 flex justify-between items-center backdrop-blur-md border border-white/5">
                     <span class="text-sm font-medium text-gray-300">До бонуса <span id="reward-name-display">...</span>:</span>
-                    <span id="stamps-left" class="font-bold text-theme text-xl">0</span>
+                    <span id="stamps-left" class="font-bold text-theme text-xl">6</span>
                 </div>
             </div>
         </div>
 
-        <!-- Bonuses Button (Restored from v2) -->
-        <button onclick="Router.go('bonuses')" class="w-full mb-6 py-4 bg-theme-soft border border-theme/20 rounded-2xl flex items-center justify-between px-6 active:scale-95 transition-transform group">
+        <!-- [NEW] Bonuses Button (SaaS Styled) -->
+        <button onclick="Router.go('bonuses')" class="w-full mb-6 py-4 bg-theme-soft border border-theme/20 rounded-2xl flex items-center justify-between px-6 shadow-sm active:scale-95 transition-transform group">
             <div class="flex items-center gap-4">
                 <div class="w-10 h-10 bg-theme text-white rounded-full flex items-center justify-center shadow-lg shadow-theme/30">
                     <i data-lucide="gift" class="w-5 h-5"></i>
@@ -154,29 +162,29 @@
         <!-- Menu Grid -->
         <div class="grid grid-cols-2 gap-4">
             <button onclick="Router.go('card')" class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform">
-                <div class="w-12 h-12 bg-gray-50 text-gray-600 rounded-full flex items-center justify-center">
+                <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center">
                     <i data-lucide="credit-card" class="w-6 h-6"></i>
                 </div>
                 <span class="font-bold text-gray-700">Моя карта</span>
             </button>
 
-            <!-- QR Action -->
+            <!-- QR Action: Now explicitly 'EARN' -->
             <button onclick="Router.go('qr', 'EARN')" class="bg-theme p-5 rounded-2xl shadow-lg shadow-theme/30 flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform text-white">
-                <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
                     <i data-lucide="qr-code" class="w-6 h-6"></i>
                 </div>
                 <span class="font-bold">Показать QR</span>
             </button>
 
             <button onclick="Router.go('contacts')" class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform">
-                <div class="w-12 h-12 bg-gray-50 text-gray-600 rounded-full flex items-center justify-center">
+                <div class="w-12 h-12 bg-green-50 text-green-600 rounded-full flex items-center justify-center">
                     <i data-lucide="phone" class="w-6 h-6"></i>
                 </div>
                 <span class="font-bold text-gray-700">Контакты</span>
             </button>
 
             <button onclick="Router.go('help')" class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform">
-                <div class="w-12 h-12 bg-gray-50 text-gray-600 rounded-full flex items-center justify-center">
+                <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-full flex items-center justify-center">
                     <i data-lucide="help-circle" class="w-6 h-6"></i>
                 </div>
                 <span class="font-bold text-gray-700">Помощь</span>
@@ -184,11 +192,11 @@
         </div>
         
         <div class="mt-8 text-center">
-            <p class="text-xs text-gray-400">Всего накоплено: <span id="total-stamps" class="font-bold text-gray-600">0</span></p>
+            <p class="text-xs text-gray-400">Всего выпито кофе: <span id="total-stamps" class="font-bold text-gray-600">0</span></p>
         </div>
     </div>
 
-    <!-- 2. BONUSES VIEW (Restored from v2 + SaaS Styled) -->
+    <!-- [NEW] 2.1 BONUSES VIEW -->
     <div id="view-bonuses" class="page px-6 py-6 flex flex-col">
         <div class="flex items-center mb-8">
             <button onclick="Router.back()" class="p-2 -ml-2 text-gray-400 hover:text-gray-900 active:scale-90 transition-transform">
@@ -198,7 +206,7 @@
         </div>
 
         <div class="flex-1 flex flex-col items-center">
-            <!-- Rank Card -->
+            <!-- Rank Card Mini -->
             <div class="w-full bg-gray-900 text-white rounded-2xl p-6 shadow-xl mb-6 flex justify-between items-center">
                 <div>
                     <p class="text-gray-400 text-xs mb-1">Ваш статус</p>
@@ -207,14 +215,14 @@
                 <div class="text-4xl">🏆</div>
             </div>
 
-            <!-- Available Bonuses Big -->
+            <!-- Available Bonuses Big (SaaS Styled) -->
             <div class="w-full bg-theme-soft border border-theme/20 rounded-3xl p-8 text-center mb-auto flex flex-col items-center justify-center">
                 <div class="w-20 h-20 bg-white text-theme rounded-full flex items-center justify-center mb-4 shadow-sm">
                     <i data-lucide="gift" class="w-10 h-10"></i>
                 </div>
-                <p class="text-theme-dark font-medium mb-2">Доступные подарки</p>
+                <p class="text-theme-dark font-medium mb-2">Доступные бесплатные напитки</p>
                 <div class="text-6xl font-black text-theme mb-4" id="bonus-cups-display">0</div>
-                <p class="text-xs text-gray-500 max-w-[200px]">Покажите QR код списания бариста, чтобы получить подарок</p>
+                <p class="text-xs text-gray-500 max-w-[200px]">Покажите QR код списания бариста, чтобы получить напиток</p>
             </div>
 
             <!-- Use Bonus Button -->
@@ -225,7 +233,7 @@
         </div>
     </div>
 
-    <!-- 3. MY CARD VIEW (SaaS Styled) -->
+    <!-- 2. MY CARD VIEW (Existing) -->
     <div id="view-card" class="page px-6 py-6 flex flex-col">
         <div class="flex items-center mb-8">
             <button onclick="Router.back()" class="p-2 -ml-2 text-gray-400 hover:text-gray-900 active:scale-90 transition-transform">
@@ -250,7 +258,7 @@
         </div>
     </div>
 
-    <!-- 4. QR CODE VIEW -->
+    <!-- 3. QR CODE VIEW -->
     <div id="view-qr" class="page px-6 py-6 flex flex-col bg-gray-900 text-white">
         <div class="flex items-center mb-6">
             <button onclick="Router.back()" class="p-2 -ml-2 text-gray-400 hover:text-white active:scale-90 transition-transform">
@@ -260,7 +268,10 @@
         </div>
 
         <div class="flex-1 flex flex-col items-center justify-center">
-            <div id="qr-view-hint" class="mb-6 px-4 py-2 bg-white/10 rounded-lg text-sm font-medium text-center backdrop-blur-md">...</div>
+            <!-- Dynamic Hint -->
+            <div id="qr-view-hint" class="mb-6 px-4 py-2 bg-white/10 rounded-lg text-sm font-medium text-center backdrop-blur-md">
+                Для начисления штампа
+            </div>
 
             <div class="bg-white p-5 rounded-3xl shadow-2xl mb-8 relative">
                 <div id="qrcode"></div>
@@ -274,25 +285,29 @@
 
             <p class="text-gray-400 text-sm mb-4">Код обновляется автоматически</p>
             
+            <!-- Timer Bar -->
             <div class="w-full max-w-[200px] h-1 bg-gray-800 rounded-full overflow-hidden">
                 <div id="timer-bar" class="h-full bg-theme transition-all duration-1000 ease-linear" style="width: 100%"></div>
             </div>
         </div>
     </div>
 
-    <!-- 5. SUCCESS VIEW -->
+    <!-- 4. SUCCESS VIEW -->
     <div id="view-success" class="page px-6 py-6 flex flex-col items-center justify-center bg-theme-soft">
         <div class="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-6 shadow-lg shadow-theme/20 stamp-enter text-theme">
             <i data-lucide="check" class="w-12 h-12"></i>
         </div>
         <h2 id="success-title" class="text-2xl font-black text-gray-900 mb-2">Отлично!</h2>
-        <p id="success-message" class="text-gray-600 text-center mb-12">...</p>
-        <button onclick="Router.go('home')" class="w-full py-4 bg-white text-gray-900 font-bold rounded-xl shadow-sm active:scale-95 transition-transform">
-            В меню
-        </button>
+        <p id="success-message" class="text-gray-600 text-center mb-12">Штамп успешно добавлен на вашу карту.</p>
+        
+        <div class="w-full space-y-3">
+            <button onclick="Router.go('home')" class="w-full py-4 bg-white text-gray-900 font-bold rounded-xl shadow-sm active:scale-95 transition-transform">
+                В главное меню
+            </button>
+        </div>
     </div>
 
-    <!-- 6. CONTACTS & HELP (Standard) -->
+    <!-- 5. CONTACTS -->
     <div id="view-contacts" class="page px-6 py-6">
         <div class="flex items-center mb-8">
             <button onclick="Router.back()" class="p-2 -ml-2 text-gray-400 hover:text-gray-900"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
@@ -303,10 +318,11 @@
                 <div class="w-10 h-10 bg-gray-100 text-gray-600 rounded-full flex items-center justify-center"><i data-lucide="map-pin" class="w-5 h-5"></i></div>
                 <div><p class="text-sm text-gray-400">Адрес</p><p class="font-bold">Уточняйте у бариста</p></div>
             </div>
-            <a href="https://t.me/support" class="block bg-theme text-white p-4 rounded-xl text-center font-bold mt-8 shadow-theme/30 shadow-lg">Написать в поддержку</a>
+            <a href="https://t.me/support" class="block bg-theme text-white p-4 rounded-xl text-center font-bold mt-8 shadow-lg shadow-theme/30">Написать в поддержку</a>
         </div>
     </div>
 
+    <!-- 6. HELP -->
     <div id="view-help" class="page px-6 py-6">
         <div class="flex items-center mb-8">
             <button onclick="Router.back()" class="p-2 -ml-2 text-gray-400 hover:text-gray-900"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
@@ -314,30 +330,38 @@
         </div>
         <div class="prose text-gray-600">
             <ul class="space-y-4">
-                <li class="flex gap-3"><span class="font-bold text-gray-900">1.</span> Приходите к нам.</li>
-                <li class="flex gap-3"><span class="font-bold text-gray-900">2.</span> Нажмите "Показать QR".</li>
+                <li class="flex gap-3"><span class="font-bold text-gray-900">1.</span> Приходите к нам за кофе.</li>
+                <li class="flex gap-3"><span class="font-bold text-gray-900">2.</span> Нажмите "Показать QR" в приложении.</li>
                 <li class="flex gap-3"><span class="font-bold text-gray-900">3.</span> Покажите код бариста.</li>
-                <li class="flex gap-3"><span class="font-bold text-gray-900">4.</span> Копите штампы и получайте подарки!</li>
+                <li class="flex gap-3"><span class="font-bold text-gray-900">4.</span> Получите штамп. 6-й кофе — бесплатно!</li>
             </ul>
         </div>
     </div>
 
-    <!-- === 7. ADMIN DASHBOARD (Updated for SaaS) === -->
+    <!-- === ADMIN VIEW (SaaS Updated) === -->
     <div id="view-admin" class="page px-6 py-6 flex flex-col">
         <div class="flex items-center justify-between mb-8">
             <h2 class="text-2xl font-bold text-gray-900">Владелец</h2>
             <div class="px-3 py-1 bg-gray-100 rounded-full text-xs font-bold text-gray-500">ADMIN</div>
         </div>
 
+        <!-- Info Card -->
         <div class="bg-theme-soft border border-theme/20 rounded-2xl p-6 mb-6">
             <h3 class="text-theme-dark font-bold text-lg mb-1" id="admin-biz-name">...</h3>
-            <p class="text-xs text-theme/80">Управление заведением</p>
+            <p class="text-xs text-theme/80">Панель управления заведением</p>
         </div>
 
         <div class="grid gap-4">
+            <!-- Scan Button -->
             <button onclick="AdminManager.scan()" class="w-full py-5 bg-gray-900 text-white font-bold rounded-2xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-3">
                 <i data-lucide="scan-line" class="w-6 h-6"></i>
                 Сканировать Клиента
+            </button>
+
+            <!-- [NEW] INVITE BUTTON -->
+            <button onclick="AdminManager.showInviteQR()" class="w-full py-5 bg-theme text-white font-bold rounded-2xl shadow-lg shadow-theme/30 active:scale-95 transition-transform flex items-center justify-center gap-3">
+                <i data-lucide="qr-code" class="w-6 h-6"></i>
+                QR для входа
             </button>
 
             <!-- Settings Button -->
@@ -349,7 +373,7 @@
         <div id="scan-status" class="mt-6 text-center h-6 text-sm font-medium"></div>
     </div>
 
-    <!-- 8. ADMIN SETTINGS (NEW SaaS Feature) -->
+    <!-- === ADMIN SETTINGS (NEW SaaS Feature) === -->
     <div id="view-admin-settings" class="page px-6 py-6 flex flex-col">
         <div class="flex items-center mb-6">
             <button onclick="Router.back()" class="p-2 -ml-2 text-gray-400 hover:text-gray-900 active:scale-90 transition-transform"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
@@ -394,7 +418,19 @@
         </button>
     </div>
 
-    <!-- === ADMIN CONFLICT MODAL (Restored from v2) === -->
+    <!-- === INVITE QR MODAL (New) === -->
+    <div id="admin-invite-modal" class="hidden fixed inset-0 z-[80] bg-black/80 flex items-center justify-center p-6 fade-in">
+        <div class="bg-white rounded-3xl w-full max-w-sm p-6 text-center shadow-2xl relative">
+            <button onclick="document.getElementById('admin-invite-modal').classList.add('hidden')" class="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-900"><i data-lucide="x" class="w-6 h-6"></i></button>
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Приглашение</h3>
+            <p class="text-sm text-gray-500 mb-6">Распечатайте этот код для клиентов</p>
+            <div id="invite-qrcode" class="flex justify-center mb-6"></div>
+            <div class="bg-gray-50 p-3 rounded-xl text-xs text-gray-400 break-all font-mono" id="invite-link-text">...</div>
+            <button onclick="document.getElementById('admin-invite-modal').classList.add('hidden')" class="mt-4 w-full py-3 bg-gray-900 text-white font-bold rounded-xl">Закрыть</button>
+        </div>
+    </div>
+
+    <!-- === ADMIN CONFLICT MODAL === -->
     <div id="admin-conflict-modal" class="hidden fixed inset-0 z-[70] bg-black/50 flex items-center justify-center p-4 fade-in">
         <div class="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl">
             <div class="text-center mb-6">
@@ -420,12 +456,17 @@
     <script>
         // --- CONFIG ---
         const API_BASE = 'https://n8n.inflio.xyz/webhook';
+        // ⚠️ ЗАМЕНИТЕ НА ЮЗЕРНЕЙМ ВАШЕГО БОТА (Без @)
+        const BOT_USERNAME = 'SeldonLoyaltyBot'; 
         const tg = window.Telegram.WebApp;
+        
+        // --- INIT ICONS ---
+        lucide.createIcons();
 
         // --- STATE ---
         const State = {
             user: null,
-            config: { // Default Config (Fallback)
+            config: { // Default Config
                 name: "Loading...",
                 target_count: 6,
                 theme_color: "#F59E0B",
@@ -434,9 +475,10 @@
                 currency_symbol: "⭐️"
             },
             balance: 0,
-            bonusCups: 0,
+            bonusCups: 0, 
             totalStamps: 0,
             rank: 'Новичок',
+            businessId: null, // [NEW] Store current business ID
             currentSessionId: null,
             qrIntent: 'EARN',
             tempTarget: 6 // For Settings UI
@@ -445,8 +487,10 @@
         // --- ROUTER ---
         const Router = {
             history: [],
+            
             go(viewId, param = null) {
                 document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+                
                 const target = document.getElementById(`view-${viewId}`);
                 if(target) {
                     target.classList.add('active');
@@ -459,60 +503,80 @@
                     }
                     if(viewId === 'home') UIManager.renderHome();
                     if(viewId === 'card') UIManager.renderCard();
-                    if(viewId === 'bonuses') UIManager.renderBonuses(); // Restored
+                    if(viewId === 'bonuses') UIManager.renderBonuses(); 
                     if(viewId === 'admin-settings') AdminManager.initSettingsForm();
                 }
                 
                 if(this.history.length > 1) tg.BackButton.show();
                 else tg.BackButton.hide();
+                
                 setTimeout(() => lucide.createIcons(), 50);
             },
+
             back() {
                 if(this.history.length <= 1) return;
                 this.history.pop();
                 const prev = this.history[this.history.length - 1];
+                
                 document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
                 document.getElementById(`view-${prev}`).classList.add('active');
+                
                 if(prev !== 'qr') QRManager.stop();
                 if(this.history.length <= 1) tg.BackButton.hide();
             }
         };
 
-        // --- API LAYER ---
+        // --- API SECURITY LAYER ---
         const API = {
+            // Centralized Request Handler with Auth Headers
             async request(endpoint, method = 'GET', body = null) {
                 const headers = {
                     'Content-Type': 'application/json',
+                    // 🔒 SECURITY: Send Telegram InitData in Header
                     'X-Telegram-Auth': tg.initData || ''
                 };
-                let url = `${API_BASE}/${endpoint}`;
+
                 const config = { method, headers };
                 if (body && method !== 'GET') config.body = JSON.stringify(body);
-                if (body && method === 'GET') url += `?${new URLSearchParams(body).toString()}`;
+
+                // Build Query String if GET and params exist
+                let url = `${API_BASE}/${endpoint}`;
+                if (method === 'GET' && body) {
+                    const params = new URLSearchParams(body).toString();
+                    url += `?${params}`;
+                }
 
                 try {
                     const res = await fetch(url, config);
-                    if (!res.ok) throw new Error('API Error');
+                    if (!res.ok) throw new Error(`API Error: ${res.status}`);
                     return await res.json();
                 } catch (e) {
-                    console.error("Net Error", e);
+                    console.error("Network Error:", e);
                     throw e;
                 }
             },
+
+            // SaaS Init
             async initApp(startParam) {
                 return await this.request('init-app', 'GET', { start_param: startParam });
             },
+            
             async saveSettings(settings) {
                 return await this.request('save-settings', 'POST', { settings });
             },
-            async getQR(userId, intent) {
-                 return await this.request('get-qr', 'GET', { intent }); // user_id is in token now
+            
+            async getQR(intent) {
+                return await this.request('get-qr', 'GET', { intent: intent });
             },
-            async checkStatus(sid) {
-                 return await this.request('check-status', 'GET', { session_id: sid });
+            
+            async checkStatus(sessionId) {
+                return await this.request('check-status', 'GET', { session_id: sessionId });
             },
-            async scanQR(sid, action) {
-                return await this.request('scan-qr', 'POST', { qr_session: sid, action });
+
+            async scanQR(qrSession, action = null) {
+                const body = { qr_session: qrSession }; // Admin ID handled by token on backend
+                if (action) body.action = action;
+                return await this.request('scan-qr', 'POST', body);
             }
         };
 
@@ -521,49 +585,50 @@
             // 🎨 THEME ENGINE
             applyTheme(cfg) {
                 const root = document.documentElement;
-                root.style.setProperty('--theme-color', cfg.theme_color);
+                root.style.setProperty('--theme-color', cfg.theme_color || '#F59E0B');
                 
-                // Simple lighten logic for bg (optional: better to use HSL)
+                // Simple lighten logic or use backend provided
                 root.style.setProperty('--theme-bg', cfg.bg_color || '#FFFBEB');
                 
                 // Set Content
-                document.getElementById('app-title').innerText = cfg.name;
+                document.getElementById('app-title').innerText = cfg.name || 'Loyalty';
                 document.getElementById('app-logo').src = cfg.logo_url || 'https://via.placeholder.com/100?text=Logo';
-                document.getElementById('admin-biz-name').innerText = cfg.name;
+                document.getElementById('admin-biz-name').innerText = cfg.name || 'Бизнес';
                 
                 // Set Telegram Header
-                tg.setHeaderColor(cfg.theme_color);
+                tg.setHeaderColor(cfg.theme_color || '#F59E0B');
                 tg.setBackgroundColor('#F9FAFB');
             },
 
             renderHome() {
                 const { user, balance, config } = State;
-                document.getElementById('user-name').innerText = user.first_name;
+                document.getElementById('user-name').innerText = `Привет, ${user.first_name || 'Друг'}!`;
                 document.getElementById('user-balance').innerText = balance;
-                document.getElementById('target-count-display').innerText = config.target_count;
+                document.getElementById('target-count-display').innerText = config.target_count || 6;
                 
-                const left = config.target_count - balance;
+                const left = (config.target_count || 6) - balance;
                 document.getElementById('stamps-left').innerText = left > 0 ? left : "0";
-                document.getElementById('reward-name-display').innerText = config.reward_name;
-
-                // Rank Logic
-                let rank = "Гость";
-                if (State.totalStamps > 10) rank = "Постоянный";
-                if (State.totalStamps > 30) rank = "VIP Клиент";
-                document.getElementById('user-rank').innerText = rank;
-
-                // Bonus Button
-                const bonusTxt = document.getElementById('home-bonus-count');
+                document.getElementById('reward-name-display').innerText = config.reward_name || 'Бонус';
+                
+                const bonusText = document.getElementById('home-bonus-count');
                 if (State.bonusCups > 0) {
-                    bonusTxt.innerText = `${State.bonusCups} шт.`;
-                    bonusTxt.classList.add('text-theme', 'font-bold');
+                    bonusText.innerText = `Доступно: ${State.bonusCups} шт.`;
+                    bonusText.classList.remove('text-gray-400');
+                    bonusText.classList.add('text-theme', 'font-bold');
                 } else {
-                    bonusTxt.innerText = "Нет доступных";
-                    bonusTxt.classList.remove('text-theme', 'font-bold');
+                    bonusText.innerText = "Нет доступных";
+                    bonusText.classList.remove('text-theme', 'font-bold');
+                    bonusText.classList.add('text-gray-400');
                 }
+
+                let rank = "Новичок";
+                if(State.totalStamps > 10) rank = "Постоянный";
+                if(State.totalStamps > 30) rank = "VIP Клиент";
+                document.getElementById('user-rank').innerText = rank;
+                State.rank = rank;
             },
 
-            renderBonuses() { // Restored Logic
+            renderBonuses() {
                 document.getElementById('bonus-rank').innerText = State.rank;
                 document.getElementById('bonus-cups-display').innerText = State.bonusCups;
                 
@@ -575,25 +640,7 @@
                 } else {
                     btn.disabled = true;
                     btn.classList.add('grayscale', 'opacity-50');
-                    btn.innerText = "Нет бонусов";
-                }
-            },
-
-            renderCard() {
-                const grid = document.getElementById('stamps-container');
-                grid.innerHTML = '';
-                const total = State.config.target_count;
-                const current = State.balance;
-                const symbol = State.config.currency_symbol || '⭐️';
-
-                for (let i = 1; i <= total; i++) {
-                    const active = i <= current;
-                    const el = document.createElement('div');
-                    el.className = `w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold border-4 transition-all duration-300 ${active ? 'bg-theme-soft border-theme text-theme scale-105 shadow-md' : 'bg-gray-50 border-gray-100 text-gray-300'}`;
-                    
-                    if (active) el.innerHTML = symbol;
-                    else el.innerText = i;
-                    grid.appendChild(el);
+                    btn.innerText = "Нет бонусов для списания";
                 }
             },
 
@@ -603,7 +650,7 @@
                 const h = document.getElementById('qr-view-hint');
                 const bar = document.getElementById('timer-bar');
 
-                if(isRedeem) {
+                if (isRedeem) {
                     t.innerText = "Списание бонуса";
                     h.innerText = `Покажите для получения: ${State.config.reward_name}`;
                     h.className = "mb-6 px-4 py-2 bg-theme/20 text-theme-dark rounded-lg text-sm font-bold border border-theme/30";
@@ -614,53 +661,143 @@
                     h.className = "mb-6 px-4 py-2 bg-white/10 text-white rounded-lg text-sm font-medium";
                     bar.style.backgroundColor = "var(--theme-color)";
                 }
+            },
+
+            renderCard() {
+                const grid = document.getElementById('stamps-container');
+                grid.innerHTML = '';
+                const total = State.config.target_count || 6;
+                const current = State.balance;
+                const symbol = State.config.currency_symbol || '⭐️';
+
+                for (let i = 1; i <= total; i++) {
+                    const active = i <= current;
+                    const el = document.createElement('div');
+                    const baseClass = "w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold border-4 transition-all duration-300";
+                    const activeClass = "bg-theme-soft border-theme text-theme scale-105 shadow-md";
+                    const emptyClass = "bg-gray-50 border-gray-100 text-gray-300";
+                    
+                    el.className = `${baseClass} ${active ? activeClass : emptyClass}`;
+                    if (active) el.innerHTML = symbol;
+                    else el.innerText = i;
+                    grid.appendChild(el);
+                }
+                lucide.createIcons();
             }
         };
 
         // --- QR LOGIC ---
         const QRManager = {
-            timer: null, poll: null,
+            pollInterval: null,
+            timerInterval: null,
+            
             async generate() {
+                document.getElementById('qr-expired').classList.add('hidden');
                 document.getElementById('qrcode').innerHTML = '';
-                try {
-                    const data = await API.getQR(State.user.id, State.qrIntent);
-                    const ses = Array.isArray(data) ? data[0] : data;
-                    State.sessId = ses.session_id;
+                
+                const loading = document.createElement('div');
+                loading.className = "w-[200px] h-[200px] flex items-center justify-center";
+                loading.innerHTML = '<div class="w-8 h-8 border-4 border-gray-200 border-t-gray-800 rounded-full animate-spin"></div>';
+                document.getElementById('qrcode').appendChild(loading);
 
+                try {
+                    const data = await API.getQR(State.qrIntent);
+                    const session = Array.isArray(data) ? data[0] : data;
+                    State.currentSessionId = session.session_id;
+
+                    document.getElementById('qrcode').innerHTML = '';
                     new QRCode(document.getElementById("qrcode"), {
-                        text: JSON.stringify({ sid: ses.session_id }),
-                        width: 200, height: 200,
-                        colorDark: "#111827", colorLight: "#ffffff"
+                        text: JSON.stringify({ sid: session.session_id }),
+                        width: 200,
+                        height: 200,
+                        colorDark : "#1F2937",
+                        colorLight : "#ffffff",
+                        correctLevel : QRCode.CorrectLevel.H
                     });
-                    this.startPoll();
-                } catch(e) { alert("Error generating QR"); }
+
+                    this.startTimer();
+                    this.startPolling();
+                } catch (e) {
+                    console.error(e);
+                    document.getElementById('qrcode').innerText = "Ошибка сети";
+                }
             },
-            startPoll() {
-                if(this.poll) clearInterval(this.poll);
-                this.poll = setInterval(async () => {
+
+            startTimer() {
+                let timeLeft = 300;
+                const bar = document.getElementById('timer-bar');
+                if(this.timerInterval) clearInterval(this.timerInterval);
+                
+                this.timerInterval = setInterval(() => {
+                    timeLeft--;
+                    bar.style.width = `${(timeLeft/300)*100}%`;
+                    if(timeLeft <= 0) {
+                        this.stop();
+                        document.getElementById('qr-expired').classList.remove('hidden');
+                    }
+                }, 1000);
+            },
+
+            startPolling() {
+                if(this.pollInterval) clearInterval(this.pollInterval);
+                this.pollInterval = setInterval(async () => {
                     try {
-                        const res = await API.checkStatus(State.sessId);
-                        const s = Array.isArray(res) ? res[0] : res;
-                        if(s.status === 'USED') {
+                        const data = await API.checkStatus(State.currentSessionId);
+                        const statusData = Array.isArray(data) ? data[0] : data;
+                        
+                        if (statusData.status === 'USED') {
                             this.stop();
-                            State.balance = s.balance;
-                            State.bonusCups = s.bonus_cups;
+                            State.balance = statusData.balance || 0;
+                            State.bonusCups = statusData.bonus_cups || 0;
                             State.totalStamps = (State.totalStamps || 0) + 1;
+
+                            const title = document.getElementById('success-title');
+                            const msg = document.getElementById('success-message');
                             
+                            if (State.qrIntent === 'REDEEM') {
+                                title.innerText = "Бонус списан!";
+                                msg.innerText = "Наслаждайтесь!";
+                            } else if (statusData.balance === 0 && statusData.bonus_cups > 0) {
+                                title.innerText = "🎉 Новый бонус!";
+                                msg.innerText = "Вы накопили на подарок!";
+                            } else {
+                                title.innerText = "Штамп получен!";
+                                msg.innerText = `Баланс: ${statusData.balance}/${State.config.target_count || 6}`;
+                            }
+
                             tg.HapticFeedback.notificationOccurred('success');
-                            document.getElementById('success-title').innerText = State.qrIntent === 'REDEEM' ? 'Списано!' : 'Начислено!';
-                            document.getElementById('success-message').innerText = `Баланс: ${s.balance}/${State.config.target_count}`;
                             Router.go('success');
                         }
-                    } catch(e) {}
-                }, 2000);
+                    } catch(e) { console.error("Poll error", e); }
+                }, 2500);
             },
-            stop() { clearInterval(this.poll); clearInterval(this.timer); }
+
+            stop() {
+                clearInterval(this.pollInterval);
+                clearInterval(this.timerInterval);
+            }
         };
 
-        // --- ADMIN MANAGER (Merged v2 + SaaS) ---
+        // --- ADMIN MANAGER ---
         const AdminManager = {
             conflictSessionId: null,
+
+            // Show Invite QR Modal
+            showInviteQR() {
+                const link = `https://t.me/${BOT_USERNAME}/app?startapp=${State.businessId}`;
+                document.getElementById('invite-link-text').innerText = link;
+                document.getElementById('invite-qrcode').innerHTML = '';
+                
+                new QRCode(document.getElementById("invite-qrcode"), {
+                    text: link,
+                    width: 200,
+                    height: 200,
+                    colorDark: "#111827",
+                    colorLight: "#ffffff"
+                });
+                
+                document.getElementById('admin-invite-modal').classList.remove('hidden');
+            },
 
             initSettingsForm() {
                 const cfg = State.config;
@@ -668,7 +805,8 @@
                 document.getElementById('setting-color').value = cfg.theme_color;
                 document.getElementById('setting-color-hex').innerText = cfg.theme_color;
                 document.getElementById('setting-logo').value = cfg.logo_url;
-                this.setTarget(cfg.target_count); 
+                
+                this.setTarget(cfg.target_count || 6); 
 
                 document.getElementById('setting-color').addEventListener('input', (e) => {
                     document.getElementById('setting-color-hex').innerText = e.target.value;
@@ -697,51 +835,86 @@
                         logo_url: document.getElementById('setting-logo').value
                     }
                 };
+
                 try {
                     tg.MainButton.showProgress();
                     await API.saveSettings(newSettings);
+                    
+                    // Optimistic Update
                     State.config = { ...State.config, ...newSettings.config, name: newSettings.name };
                     UIManager.applyTheme(State.config);
+                    
                     tg.MainButton.hideProgress();
                     tg.HapticFeedback.notificationOccurred('success');
                     alert("Настройки сохранены!");
                     Router.back();
-                } catch(e) { tg.MainButton.hideProgress(); alert("Ошибка"); }
+                } catch(e) {
+                    tg.MainButton.hideProgress();
+                    alert("Ошибка сохранения");
+                }
             },
 
             scan() {
-                tg.showScanQrPopup({ text: "Сканируйте клиента" }, async (txt) => {
-                    tg.closeScanQrPopup();
+                tg.showScanQrPopup({ text: "Сканируйте QR клиента" }, async (qrText) => {
+                    tg.closeScanQrPopup(); 
+                    
+                    const statusEl = document.getElementById('scan-status');
+                    statusEl.innerHTML = '<span class="text-blue-600 animate-pulse">Обработка...</span>';
+                    
                     try {
-                        const sid = JSON.parse(txt).sid;
-                        const res = await API.scanQR(sid);
-                        const r = Array.isArray(res) ? res[0].result : res.result;
+                        let parsed;
+                        try { parsed = JSON.parse(qrText); } catch(e) { throw new Error("Invalid JSON"); }
+                        if (!parsed.sid) throw new Error("No SID");
                         
-                        if(r.status === 'success') {
-                            tg.showAlert(r.message);
-                            document.getElementById('scan-status').innerHTML = `<span class="text-green-600">✅ ${r.message}</span>`;
-                        } else if (r.status === 'confirmation_required') {
-                            // [RESTORED] Conflict Logic
-                            this.conflictSessionId = r.session_id;
-                            document.getElementById('conflict-username').innerText = r.user_name || 'Клиент';
-                            document.getElementById('conflict-bonus-count').innerText = r.bonus_cups;
+                        const res = await API.scanQR(parsed.sid);
+                        const result = Array.isArray(res) ? res[0].result : res.result; 
+
+                        if (result.status === 'success') {
+                            tg.HapticFeedback.notificationOccurred('success');
+                            tg.showAlert(result.message);
+                            statusEl.innerHTML = '<span class="text-green-600 font-bold">✅ Успешно</span>';
+                        } 
+                        else if (result.status === 'confirmation_required') {
+                            this.conflictSessionId = result.session_id;
+                            document.getElementById('conflict-username').innerText = result.user_name || 'Клиент';
+                            document.getElementById('conflict-bonus-count').innerText = result.bonus_cups;
                             document.getElementById('admin-conflict-modal').classList.remove('hidden');
-                        } else {
-                            tg.showAlert(r.message);
+                            
+                            tg.HapticFeedback.notificationOccurred('warning');
+                            statusEl.innerHTML = '<span class="text-amber-500 font-bold">⚠️ Требуется выбор</span>';
                         }
-                    } catch(e) { alert("Invalid QR"); }
+                        else {
+                            tg.HapticFeedback.notificationOccurred('error');
+                            tg.showAlert(`Ошибка: ${result.message}`);
+                            statusEl.innerHTML = '<span class="text-red-500 font-bold">❌ Ошибка</span>';
+                        }
+                    } catch (e) {
+                        tg.showAlert("Неверный QR код");
+                        statusEl.innerHTML = '<span class="text-red-500">Неверный QR</span>';
+                    }
                     return true;
                 });
             },
 
             async resolve(action) {
                 this.closeConflict();
+                const statusEl = document.getElementById('scan-status');
+                statusEl.innerHTML = '<span class="text-blue-600 animate-pulse">Применение...</span>';
+
                 try {
                     const res = await API.scanQR(this.conflictSessionId, action);
-                    const r = Array.isArray(res) ? res[0].result : res.result;
-                    if (r.status === 'success') tg.showAlert(r.message);
-                    else tg.showAlert(r.message);
-                } catch (e) { tg.showAlert("Ошибка сети"); }
+                    const result = Array.isArray(res) ? res[0].result : res.result;
+
+                    if (result.status === 'success') {
+                        tg.showAlert(result.message);
+                        statusEl.innerHTML = '<span class="text-green-600 font-bold">✅ Успешно</span>';
+                    } else {
+                        tg.showAlert(`Ошибка: ${result.message}`);
+                        statusEl.innerHTML = '<span class="text-red-500">Ошибка</span>';
+                    }
+                } catch (e) {
+                    tg.showAlert("Ошибка сети");
+                }
             },
 
             closeConflict() {
@@ -750,13 +923,14 @@
             }
         };
 
-        // --- BOOTSTRAP ---
+        // --- BOOTSTRAP (SaaS Logic) ---
         async function bootstrap() {
             tg.expand();
             tg.BackButton.onClick(() => Router.back());
 
             const user = tg.initDataUnsafe?.user;
-            const startParam = tg.initDataUnsafe?.start_param || "";
+            // 🛠 Fallback to URL search param if initData start_param is missing
+            const startParam = tg.initDataUnsafe?.start_param || new URLSearchParams(window.location.search).get('startapp') || "";
 
             if (!user) {
                 document.getElementById('loader').classList.add('hidden');
@@ -765,24 +939,37 @@
             }
 
             try {
-                // SaaS Init
+                // SaaS Init Call
                 const res = await API.initApp(startParam);
-                const data = Array.isArray(res) ? res[0] : res;
                 
+                // 🛠 Handle nested 'data' object from SQL function result
+                let data = Array.isArray(res) ? res[0] : res;
+                if (data.data) {
+                    data = data.data; // Unwrap if nested
+                }
+                
+                // Hydrate State
                 State.user = user;
-                State.config = data.business_config || State.config; // Load from DB
+                State.config = data.business_config || State.config; 
                 State.balance = data.balance;
                 State.bonusCups = data.bonus_cups;
                 State.totalStamps = data.total_stamps;
+                State.businessId = data.business_id;
 
+                // Apply Branding
                 UIManager.applyTheme(State.config);
                 
                 document.getElementById('loader').classList.add('hidden');
 
-                if (data.is_admin) Router.go('admin');
-                else Router.go('home');
+                // Routing
+                if (data.is_admin) {
+                    Router.go('admin');
+                } else {
+                    Router.go('home');
+                }
 
             } catch (e) {
+                console.error(e);
                 document.getElementById('loader').classList.add('hidden');
                 document.getElementById('view-error').classList.remove('hidden');
             }

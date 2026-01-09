@@ -21,6 +21,13 @@
         <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
     </div>
 
+    <!-- === STUB VIEW (Заглушка для браузера) === -->
+    <div id="stub-view" class="hidden fixed inset-0 z-[60] bg-gray-50 flex flex-col items-center justify-center p-6 text-center">
+        <div class="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mb-4 text-3xl">📱</div>
+        <h2 class="text-xl font-bold mb-2">Только для Telegram</h2>
+        <p class="text-gray-500">Пожалуйста, откройте это приложение через бота.</p>
+    </div>
+
     <!-- === CLIENT UI === -->
     <div id="client-view" class="hidden flex-col h-full px-6 py-4">
         <header class="text-center mt-2 mb-8">
@@ -29,9 +36,7 @@
         </header>
 
         <!-- Cards Grid -->
-        <div id="stamps-grid" class="grid grid-cols-3 gap-4 mb-auto">
-            <!-- Injected via JS -->
-        </div>
+        <div id="stamps-grid" class="grid grid-cols-3 gap-4 mb-auto"></div>
 
         <!-- Success Message Overlay -->
         <div id="success-overlay" class="hidden fixed inset-0 z-40 bg-white/95 flex flex-col items-center justify-center text-center p-6 animate-fade-in">
@@ -49,16 +54,11 @@
                 <h3 class="font-bold text-lg">Покажите бариста</h3>
                 <button onclick="closeQR()" class="p-2 bg-gray-100 rounded-full">✕</button>
             </div>
-            
             <div class="flex-1 flex flex-col items-center justify-center">
                 <div class="bg-white p-4 rounded-2xl shadow-xl border border-gray-100 mb-6 relative">
                     <div id="qrcode"></div>
-                    <!-- Expired Overlay -->
-                    <div id="qr-expired" class="hidden absolute inset-0 bg-white/90 flex items-center justify-center font-bold text-red-500">
-                        Код истек
-                    </div>
+                    <div id="qr-expired" class="hidden absolute inset-0 bg-white/90 flex items-center justify-center font-bold text-red-500">Код истек</div>
                 </div>
-                
                 <div class="w-full max-w-[200px]">
                     <div class="h-1.5 bg-gray-100 rounded-full overflow-hidden mb-2">
                         <div id="timer-bar" class="h-full bg-blue-500 transition-all duration-1000 ease-linear" style="width: 100%"></div>
@@ -90,23 +90,31 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // ⚠️ КОНФИГУРАЦИЯ: ВСТАВЬТЕ СЮДА ВАШ N8N URL (Production Webhook)
+        // ⚠️ КОНФИГУРАЦИЯ: Вставьте ваш URL
         const API_BASE = 'https://n8n.inflio.xyz/webhook'; 
 
+        // 🛡 ЗАЩИТА: Получаем пользователя БЕЗ запасных вариантов
+        // Если открыто в браузере, tg.initDataUnsafe.user будет undefined
+        const currentUser = tg.initDataUnsafe?.user; 
+
         // State
-        let currentUser = tg.initDataUnsafe.user || { id: 12345678, first_name: "DemoUser" }; // Fallback для браузера
         let currentSessionId = null;
         let pollInterval = null;
         let timerInterval = null;
 
-        // === Init ===
         async function init() {
+            // 🛡 ПРОВЕРКА ЗАГЛУШКИ
+            if (!currentUser || !currentUser.id) {
+                document.getElementById('loader').classList.add('hidden');
+                document.getElementById('stub-view').classList.remove('hidden');
+                console.warn("App opened outside Telegram. Request blocked.");
+                return; // ⛔️ СТОП! Дальше код не выполняется, запрос не уходит.
+            }
+
             try {
-                // 1. Get User Data
+                // Запрос уйдет только если есть currentUser.id
                 const res = await fetch(`${API_BASE}/init-app?id=${currentUser.id}&first_name=${currentUser.first_name}`);
                 const data = await res.json();
-                
-                // Обработка формата ответа n8n (часто массив)
                 const userData = Array.isArray(data) ? data[0] : data;
                 
                 document.getElementById('loader').classList.add('hidden');
@@ -122,7 +130,8 @@
             }
         }
 
-        // === Client Logic ===
+        // ... Остальной код (UI функции) без изменений ...
+        
         function showClientUI(balance) {
             document.getElementById('client-view').classList.remove('hidden');
             document.getElementById('client-view').classList.add('flex');
@@ -145,21 +154,16 @@
             document.getElementById('qr-modal').classList.remove('hidden');
             document.getElementById('qr-modal').classList.add('flex');
             
-            // Get Session
             const res = await fetch(`${API_BASE}/get-qr?user_id=${currentUser.id}`);
             const data = await res.json();
             const session = Array.isArray(data) ? data[0] : data;
             currentSessionId = session.session_id;
 
-            // Generate QR
             document.getElementById('qrcode').innerHTML = '';
             new QRCode(document.getElementById("qrcode"), {
                 text: JSON.stringify({ sid: currentSessionId }),
                 width: 200,
-                height: 200,
-                colorDark : "#000000",
-                colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.H
+                height: 200
             });
 
             startTimer();
@@ -177,9 +181,7 @@
             let timeLeft = 300;
             const bar = document.getElementById('timer-bar');
             const val = document.getElementById('timer-val');
-            
             if(timerInterval) clearInterval(timerInterval);
-            
             timerInterval = setInterval(() => {
                 timeLeft--;
                 val.innerText = timeLeft;
@@ -193,33 +195,25 @@
 
         function startPolling() {
             if(pollInterval) clearInterval(pollInterval);
-            
             pollInterval = setInterval(async () => {
                 try {
                     const res = await fetch(`${API_BASE}/check-status?session_id=${currentSessionId}`);
                     const data = await res.json();
                     const statusData = Array.isArray(data) ? data[0] : data;
-
                     if (statusData.status === 'USED') {
                         closeQR();
                         showSuccess(statusData.balance);
                     }
                 } catch(e) { console.error("Poll error", e); }
-            }, 2500); // Опрос каждые 2.5 сек
+            }, 2500);
         }
 
         function showSuccess(newBalance) {
             const overlay = document.getElementById('success-overlay');
             const text = document.getElementById('reward-text');
-            
             renderStamps(newBalance);
-            
-            if (newBalance === 0) {
-                text.innerText = "Вам полагается бесплатный кофе!";
-            } else {
-                text.innerText = `До бонуса осталось: ${6 - newBalance}`;
-            }
-
+            if (newBalance === 0) text.innerText = "Вам полагается бесплатный кофе!";
+            else text.innerText = `До бонуса осталось: ${6 - newBalance}`;
             overlay.classList.remove('hidden');
             tg.HapticFeedback.notificationOccurred('success');
         }
@@ -228,7 +222,6 @@
             document.getElementById('success-overlay').classList.add('hidden');
         }
 
-        // === Admin Logic ===
         function showAdminUI() {
             document.getElementById('admin-view').classList.remove('hidden');
             document.getElementById('admin-view').classList.add('flex');
@@ -236,45 +229,32 @@
 
         function scanQR() {
             tg.showScanQrPopup({ text: "Наведите на QR клиента" }, async (qrText) => {
-                // Close raw scanner immediately to show UI feedback
                 tg.closeScanQrPopup(); 
-                
                 try {
                     const parsed = JSON.parse(qrText);
                     if (!parsed.sid) throw new Error();
-
                     document.getElementById('scan-status').innerHTML = '<span class="text-blue-500">Обработка...</span>';
-
                     const res = await fetch(`${API_BASE}/scan-qr`, {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ 
-                            admin_id: currentUser.id,
-                            qr_session: parsed.sid 
-                        })
+                        body: JSON.stringify({ admin_id: currentUser.id, qr_session: parsed.sid })
                     });
-                    
                     const resultRaw = await res.json();
-                    // n8n returns [{ result: { ... } }] usually via Postgres node
                     const result = Array.isArray(resultRaw) ? resultRaw[0].result : resultRaw.result; 
-
                     if (result.status === 'success') {
-                        tg.showAlert(result.message); // Native alert
+                        tg.showAlert(result.message);
                         document.getElementById('scan-status').innerHTML = '✅ Успешно';
                     } else {
                         tg.showAlert(`Ошибка: ${result.message}`);
                         document.getElementById('scan-status').innerHTML = '❌ Ошибка';
                     }
-
                 } catch (e) {
                     tg.showAlert("Неверный QR код");
                 }
-                
                 return true;
             });
         }
 
-        // Start
         init();
     </script>
 </body>

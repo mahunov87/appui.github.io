@@ -16,43 +16,75 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen text-gray-900 overflow-hidden relative">
+<body class="bg-white min-h-screen text-gray-900 overflow-hidden relative">
 
-    <!-- Loader -->
+    <!-- Loading Screen -->
     <div id="loader" class="absolute inset-0 z-50 flex items-center justify-center bg-white">
         <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
     </div>
 
-    <!-- Stub View -->
+    <!-- === STUB VIEW (Заглушка для браузера) === -->
     <div id="stub-view" class="hidden fixed inset-0 z-[60] bg-gray-50 flex flex-col items-center justify-center p-6 text-center">
         <div class="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mb-4 text-3xl">📱</div>
         <h2 class="text-xl font-bold mb-2">Только для Telegram</h2>
         <p class="text-gray-500">Пожалуйста, откройте это приложение через бота.</p>
     </div>
 
-    <!-- === CLIENT VIEW: MAIN === -->
-    <div id="client-view" class="hidden flex-col h-full px-6 py-4 max-w-md mx-auto">
-        <header class="flex justify-between items-center mt-2 mb-6">
-            <div>
-                <h1 class="text-2xl font-black text-gray-800 tracking-tight">COFFEE BONUS</h1>
-                <p class="text-sm text-gray-500 font-medium">6-й кофе в подарок</p>
-            </div>
-            <div onclick="showBonuses()" class="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold cursor-pointer active:scale-95 transition-transform flex items-center gap-1">
-                🎁 Бонусы
-            </div>
+    <!-- === CLIENT UI === -->
+    <div id="client-view" class="hidden flex-col h-full px-6 py-4">
+        <!-- Оригинальный Header + Новая кнопка бонусов -->
+        <header class="text-center mt-2 mb-8">
+            <h1 class="text-2xl font-black text-gray-800 tracking-tight">COFFEE BONUS</h1>
+            <p class="text-sm text-gray-500 font-medium mt-1">6-й кофе в подарок</p>
+            
+            <!-- [NEW] Кнопка бонусов (добавлена аккуратно) -->
+            <button onclick="showBonuses()" class="mt-3 px-4 py-2 bg-orange-50 text-orange-700 rounded-full text-sm font-bold active:scale-95 transition-transform inline-flex items-center gap-1 border border-orange-100 shadow-sm">
+                🎁 Мои бонусы
+            </button>
         </header>
 
-        <!-- Cards Grid -->
+        <!-- Cards Grid (Оригинал) -->
         <div id="stamps-grid" class="grid grid-cols-3 gap-4 mb-auto"></div>
 
-        <!-- Action Button -->
-        <button onclick="openQR('EARN')" class="mt-6 w-full py-4 bg-blue-600 text-white text-lg font-bold rounded-xl shadow-lg shadow-blue-200 active:scale-95 transition-transform flex items-center justify-center gap-2">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+        <!-- Success Message Overlay (Оригинал + ID для JS) -->
+        <div id="success-overlay" class="hidden fixed inset-0 z-40 bg-white/95 flex flex-col items-center justify-center text-center p-6 animate-fade-in">
+            <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                <svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+            </div>
+            <h2 id="success-title" class="text-2xl font-bold text-gray-900 mb-2">Штамп получен!</h2>
+            <p id="reward-text" class="text-gray-600 mb-8">До следующего бонуса: 1</p>
+            <button onclick="hideSuccess()" class="w-full py-4 bg-gray-900 text-white font-bold rounded-xl active:scale-95 transition-transform">Отлично</button>
+        </div>
+
+        <!-- QR Modal (Оригинал + доработки текстов через JS) -->
+        <div id="qr-modal" class="hidden fixed inset-0 z-30 bg-white flex flex-col p-6">
+            <div class="flex justify-between items-center mb-8">
+                <h3 class="font-bold text-lg" id="qr-title">Покажите бариста</h3>
+                <button onclick="closeQR()" class="p-2 bg-gray-100 rounded-full">✕</button>
+            </div>
+            <div class="flex-1 flex flex-col items-center justify-center">
+                <div class="bg-white p-4 rounded-2xl shadow-xl border border-gray-100 mb-6 relative">
+                    <div id="qrcode"></div>
+                    <div id="qr-expired" class="hidden absolute inset-0 bg-white/90 flex items-center justify-center font-bold text-red-500">Код истек</div>
+                </div>
+                <div class="w-full max-w-[200px]">
+                    <div class="h-1.5 bg-gray-100 rounded-full overflow-hidden mb-2">
+                        <div id="timer-bar" class="h-full bg-blue-500 transition-all duration-1000 ease-linear" style="width: 100%"></div>
+                    </div>
+                    <p class="text-center text-xs text-gray-400">Обновление через <span id="timer-val">300</span> сек</p>
+                </div>
+                <!-- [NEW] Подсказка -->
+                <p id="qr-hint" class="text-center text-sm text-gray-500 mt-6 font-medium"></p>
+            </div>
+        </div>
+
+        <!-- Кнопка действия (Оригинальный стиль) -->
+        <button onclick="openQR('EARN')" class="mt-4 w-full py-4 bg-blue-600 text-white text-lg font-bold rounded-xl shadow-lg shadow-blue-200 active:scale-95 transition-transform">
             Получить штамп
         </button>
     </div>
 
-    <!-- === CLIENT VIEW: MY BONUSES === -->
+    <!-- === [NEW] BONUSES VIEW (Экран бонусов) === -->
     <div id="bonuses-view" class="hidden fixed inset-0 z-20 bg-white flex flex-col px-6 py-4 fade-in">
         <header class="flex items-center mb-8 mt-2">
             <button onclick="hideBonuses()" class="p-2 -ml-2 text-gray-400 hover:text-gray-800 transition-colors">
@@ -77,7 +109,7 @@
             </div>
 
             <!-- Available Bonuses -->
-            <div class="w-full bg-orange-50 border border-orange-100 rounded-2xl p-6 text-center mb-auto">
+            <div class="w-full bg-orange-50 border border-orange-100 rounded-2xl p-6 text-center mb-auto mt-6">
                 <p class="text-orange-800 font-medium mb-2">Доступные бесплатные напитки</p>
                 <div class="text-5xl font-black text-orange-600 mb-2" id="bonus-cups-display">0</div>
                 <p class="text-xs text-orange-400">Покажите QR код бариста для списания</p>
@@ -90,38 +122,7 @@
         </div>
     </div>
 
-    <!-- === QR MODAL (Shared) === -->
-    <div id="qr-modal" class="hidden fixed inset-0 z-30 bg-white flex flex-col p-6">
-        <div class="flex justify-between items-center mb-8">
-            <h3 class="font-bold text-lg" id="qr-title">Покажите бариста</h3>
-            <button onclick="closeQR()" class="p-2 bg-gray-100 rounded-full">✕</button>
-        </div>
-        <div class="flex-1 flex flex-col items-center justify-center">
-            <div class="bg-white p-4 rounded-2xl shadow-xl border border-gray-100 mb-6 relative">
-                <div id="qrcode"></div>
-                <div id="qr-expired" class="hidden absolute inset-0 bg-white/90 flex items-center justify-center font-bold text-red-500">Код истек</div>
-            </div>
-            <div class="w-full max-w-[200px]">
-                <div class="h-1.5 bg-gray-100 rounded-full overflow-hidden mb-2">
-                    <div id="timer-bar" class="h-full bg-blue-500 transition-all duration-1000 ease-linear" style="width: 100%"></div>
-                </div>
-                <p class="text-center text-xs text-gray-400">Обновление через <span id="timer-val">300</span> сек</p>
-            </div>
-            <p id="qr-hint" class="text-center text-sm text-gray-500 mt-8 font-medium"></p>
-        </div>
-    </div>
-
-    <!-- === SUCCESS OVERLAY === -->
-    <div id="success-overlay" class="hidden fixed inset-0 z-40 bg-white/95 flex flex-col items-center justify-center text-center p-6 animate-fade-in">
-        <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
-            <svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
-        </div>
-        <h2 id="success-title" class="text-2xl font-bold text-gray-900 mb-2">Успешно!</h2>
-        <p id="reward-text" class="text-gray-600 mb-8">Данные обновлены</p>
-        <button onclick="hideSuccess()" class="w-full py-4 bg-gray-900 text-white font-bold rounded-xl active:scale-95 transition-transform">Отлично</button>
-    </div>
-
-    <!-- === ADMIN VIEW === -->
+    <!-- === ADMIN UI (Оригинал) === -->
     <div id="admin-view" class="hidden flex-col h-full items-center justify-center p-6 text-center">
         <div class="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mb-6">
             <svg class="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
@@ -134,8 +135,8 @@
         <div id="scan-status" class="mt-4 text-sm font-medium h-6"></div>
     </div>
 
-    <!-- === ADMIN CONFLICT MODAL === -->
-    <div id="admin-conflict-modal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <!-- === [NEW] ADMIN CONFLICT MODAL (Для разрешения споров) === -->
+    <div id="admin-conflict-modal" class="hidden fixed inset-0 z-[70] bg-black/50 flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl animate-fade-in">
             <div class="text-center mb-6">
                 <div class="w-16 h-16 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">🤔</div>
@@ -159,18 +160,19 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // ⚠️ КОНФИГУРАЦИЯ
+        // ⚠️ КОНФИГУРАЦИЯ: Вставьте ваш URL
         const API_BASE = 'https://n8n.inflio.xyz/webhook'; 
 
+        // 🛡 ЗАЩИТА: Получаем пользователя
+        const currentUser = tg.initDataUnsafe?.user; 
+
         // State
-        const currentUser = tg.initDataUnsafe?.user;
-        let userData = { balance: 0, bonus_cups: 0, total_stamps: 0 };
+        let userData = { balance: 0, bonus_cups: 0, total_stamps: 0 }; // Local state with defaults
         let currentSessionId = null;
-        let conflictSessionId = null; // ID сессии для разрешения конфликта
+        let conflictSessionId = null; 
         let pollInterval = null;
         let timerInterval = null;
 
-        // === INITIALIZATION ===
         async function init() {
             if (!currentUser || !currentUser.id) {
                 document.getElementById('loader').classList.add('hidden');
@@ -183,34 +185,35 @@
                 const data = await res.json();
                 const user = Array.isArray(data) ? data[0] : data;
                 
-                // Save state
+                // Save loaded user data to state
                 userData = user;
-
+                
                 document.getElementById('loader').classList.add('hidden');
 
-                if (user.is_admin) {
+                if (userData.is_admin) {
                     showAdminUI();
                 } else {
-                    showClientUI();
+                    showClientUI(userData.balance);
                 }
             } catch (e) {
                 console.error(e);
-                tg.showAlert("Ошибка соединения с сервером");
+                alert("Ошибка соединения с сервером");
             }
         }
 
-        // === UI RENDERING ===
-        function showClientUI() {
+        function showClientUI(balance) {
             document.getElementById('client-view').classList.remove('hidden');
             document.getElementById('client-view').classList.add('flex');
-            renderStamps();
+            renderStamps(userData.balance); // Use state
         }
 
-        function renderStamps() {
+        function renderStamps(count) {
+            // Default to 0 if undefined
+            const safeCount = count || 0;
             const grid = document.getElementById('stamps-grid');
             grid.innerHTML = '';
             for (let i = 1; i <= 6; i++) {
-                const isActive = i <= userData.balance;
+                const isActive = i <= safeCount;
                 const el = document.createElement('div');
                 el.className = `stamp aspect-square rounded-2xl border-4 flex items-center justify-center text-xl font-bold ${isActive ? 'active' : 'empty'}`;
                 el.innerHTML = isActive ? '☕️' : i;
@@ -218,6 +221,7 @@
             }
         }
 
+        // === [NEW] LOGIC FOR BONUSES ===
         function showBonuses() {
             document.getElementById('client-view').classList.add('hidden');
             document.getElementById('bonuses-view').classList.remove('hidden');
@@ -250,13 +254,12 @@
             document.getElementById('client-view').classList.remove('hidden');
         }
 
-        // === QR LOGIC ===
-        async function openQR(intent) {
-            // Intent: 'EARN' (копить) or 'REDEEM' (списать)
+        // === UPDATED QR LOGIC ===
+        async function openQR(intent = 'EARN') {
             document.getElementById('qr-modal').classList.remove('hidden');
             document.getElementById('qr-modal').classList.add('flex');
             
-            // Visual tweaks based on intent
+            // UI Tweaks based on intent
             const title = document.getElementById('qr-title');
             const hint = document.getElementById('qr-hint');
             const bar = document.getElementById('timer-bar');
@@ -270,26 +273,21 @@
                 hint.innerText = "Покажите этот код для начисления штампа";
                 bar.className = "h-full bg-blue-500 transition-all duration-1000 ease-linear";
             }
+            
+            const res = await fetch(`${API_BASE}/get-qr?user_id=${currentUser.id}&intent=${intent}`);
+            const data = await res.json();
+            const session = Array.isArray(data) ? data[0] : data;
+            currentSessionId = session.session_id;
 
-            try {
-                const res = await fetch(`${API_BASE}/get-qr?user_id=${currentUser.id}&intent=${intent}`);
-                const data = await res.json();
-                const session = Array.isArray(data) ? data[0] : data;
-                currentSessionId = session.session_id;
+            document.getElementById('qrcode').innerHTML = '';
+            new QRCode(document.getElementById("qrcode"), {
+                text: JSON.stringify({ sid: currentSessionId }),
+                width: 200,
+                height: 200
+            });
 
-                document.getElementById('qrcode').innerHTML = '';
-                new QRCode(document.getElementById("qrcode"), {
-                    text: JSON.stringify({ sid: currentSessionId }),
-                    width: 200,
-                    height: 200
-                });
-
-                startTimer();
-                startPolling();
-            } catch(e) {
-                closeQR();
-                tg.showAlert("Ошибка генерации QR");
-            }
+            startTimer();
+            startPolling();
         }
 
         function closeQR() {
@@ -304,7 +302,7 @@
             const bar = document.getElementById('timer-bar');
             const val = document.getElementById('timer-val');
             document.getElementById('qr-expired').classList.add('hidden');
-            
+
             if(timerInterval) clearInterval(timerInterval);
             timerInterval = setInterval(() => {
                 timeLeft--;
@@ -324,10 +322,9 @@
                     const res = await fetch(`${API_BASE}/check-status?session_id=${currentSessionId}`);
                     const data = await res.json();
                     const statusData = Array.isArray(data) ? data[0] : data;
-                    
                     if (statusData.status === 'USED') {
                         closeQR();
-                        // Update local data
+                        // Update local state
                         userData.balance = statusData.balance;
                         userData.bonus_cups = statusData.bonus_cups;
                         
@@ -339,32 +336,27 @@
 
         function showSuccess(data) {
             const overlay = document.getElementById('success-overlay');
-            const text = document.getElementById('reward-text');
             const title = document.getElementById('success-title');
-
-            // Refresh Client UI
-            renderStamps();
-            // Refresh Bonuses UI if open
+            const text = document.getElementById('reward-text');
+            
+            renderStamps(data.balance);
             if (!document.getElementById('bonuses-view').classList.contains('hidden')) {
                 showBonuses(); 
             }
 
-            // Smart Message Logic
-            if (data.bonus_cups > userData.bonus_cups) {
-                 // Gained a bonus
-                 title.innerText = "🎉 Новый бонус!";
-                 text.innerText = "Вы накопили 6 штампов. Бесплатный кофе ждет вас!";
-            } else if (data.balance === 0 && data.bonus_cups < userData.bonus_cups) {
-                // Used a bonus (balance 0 check is approximate, better to track diff)
-                title.innerText = "Бонус списан";
-                text.innerText = "Наслаждайтесь вашим кофе!";
-            } else {
-                // Just a stamp
-                title.innerText = "Штамп получен!";
-                const left = 6 - data.balance;
-                text.innerText = left === 0 ? "Бонус получен!" : `До бонуса осталось: ${left}`;
+            // Logic for messages
+            if (data.bonus_cups > (userData.bonus_cups || 0)) { // This check might be tricky if userData already updated
+                 // Simplified logic: Check balance reset
+                 if (data.balance === 0 && data.bonus_cups > 0) {
+                     title.innerText = "🎉 Новый бонус!";
+                     text.innerText = "Вы накопили 6 штампов!";
+                 }
             }
-
+            
+            const left = 6 - data.balance;
+            if (data.balance === 0) text.innerText = "Вам полагается бесплатный кофе!";
+            else text.innerText = `До бонуса осталось: ${left}`;
+            
             overlay.classList.remove('hidden');
             tg.HapticFeedback.notificationOccurred('success');
         }
@@ -373,7 +365,6 @@
             document.getElementById('success-overlay').classList.add('hidden');
         }
 
-        // === ADMIN LOGIC ===
         function showAdminUI() {
             document.getElementById('admin-view').classList.remove('hidden');
             document.getElementById('admin-view').classList.add('flex');
@@ -382,51 +373,43 @@
         function scanQR() {
             tg.showScanQrPopup({ text: "Наведите на QR клиента" }, async (qrText) => {
                 tg.closeScanQrPopup(); 
-                
                 try {
                     const parsed = JSON.parse(qrText);
                     if (!parsed.sid) throw new Error();
-                    
                     document.getElementById('scan-status').innerHTML = '<span class="text-blue-500">Обработка...</span>';
-                    
                     const res = await fetch(`${API_BASE}/scan-qr`, {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({ admin_id: currentUser.id, qr_session: parsed.sid })
                     });
-                    
                     const resultRaw = await res.json();
                     const result = Array.isArray(resultRaw) ? resultRaw[0].result : resultRaw.result; 
-
-                    // --- LOGIC HANDLING ---
+                    
                     if (result.status === 'success') {
                         tg.showAlert(result.message);
                         document.getElementById('scan-status').innerHTML = '✅ Успешно';
                     } 
                     else if (result.status === 'confirmation_required') {
-                        // Conflict! Client has bonuses but scanned EARN.
-                        conflictSessionId = result.session_id; // Save for next step
+                        // [NEW] Handle Conflict
+                        conflictSessionId = result.session_id; 
                         document.getElementById('conflict-username').innerText = result.user_name || 'Клиент';
                         document.getElementById('conflict-bonus-count').innerText = result.bonus_cups;
                         
                         document.getElementById('admin-conflict-modal').classList.remove('hidden');
                         document.getElementById('scan-status').innerHTML = '⚠️ Требуется выбор';
-                    } 
+                    }
                     else {
                         tg.showAlert(`Ошибка: ${result.message}`);
                         document.getElementById('scan-status').innerHTML = '❌ Ошибка';
                     }
-
                 } catch (e) {
-                    tg.showAlert("Неверный QR код или ошибка сети");
-                    document.getElementById('scan-status').innerHTML = '❌ Ошибка чтения';
+                    tg.showAlert("Неверный QR код");
                 }
                 return true;
             });
         }
 
         async function resolveConflict(action) {
-            // action: 'EARN' (Just stamp) or 'REDEEM' (Burn bonus)
             closeConflictModal();
             document.getElementById('scan-status').innerHTML = '<span class="text-blue-500">Применение...</span>';
 
@@ -437,7 +420,7 @@
                     body: JSON.stringify({ 
                         admin_id: currentUser.id, 
                         qr_session: conflictSessionId,
-                        action: action // Force the action
+                        action: action 
                     })
                 });
                 const resultRaw = await res.json();

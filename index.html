@@ -13,7 +13,7 @@
         .stamp.active { background-color: #F59E0B; color: white; border-color: #D97706; transform: scale(1.05); }
         .stamp.empty { background-color: #F3F4F6; color: #9CA3AF; border-color: #E5E7EB; }
         
-        /* Анимация для модального окна админа */
+        /* Анимации для модальных окон */
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
         .modal-enter { animation: slideUp 0.3s ease-out forwards; }
     </style>
@@ -34,18 +34,18 @@
 
     <!-- === CLIENT UI === -->
     <div id="client-view" class="hidden flex-col h-full px-6 py-4">
-        <header class="mt-2 mb-6 flex justify-between items-end">
-            <div>
-                <h1 class="text-2xl font-black text-gray-800 tracking-tight">COFFEE BONUS</h1>
-                <p class="text-sm text-gray-500 font-medium mt-1">6-й кофе в подарок</p>
+        <header class="text-center mt-2 mb-6">
+            <h1 class="text-2xl font-black text-gray-800 tracking-tight">COFFEE BONUS</h1>
+            <p class="text-sm text-gray-500 font-medium mt-1">6-й кофе в подарок</p>
+            <!-- [NEW] Rank Badge: Внедрен в существующий хедер -->
+            <div class="mt-2">
+                <span id="user-rank" class="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-bold rounded-full uppercase tracking-wide">
+                    Загрузка...
+                </span>
             </div>
-            <!-- Бейдж ранга (New) -->
-            <span id="user-rank" class="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-bold rounded-full uppercase tracking-wide mb-1">
-                Загрузка...
-            </span>
         </header>
 
-        <!-- Bonus Info Card (New: Скрыт, если бонусов нет) -->
+        <!-- [NEW] Bonus Info Card: Скрыт по умолчанию -->
         <div id="bonus-card" class="bg-gray-900 rounded-2xl p-5 text-white shadow-lg mb-6 hidden transition-all">
             <div class="flex justify-between items-center">
                 <div>
@@ -60,11 +60,11 @@
         </div>
 
         <!-- Cards Grid (Original) -->
-        <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-auto">
-            <div id="stamps-grid" class="grid grid-cols-3 gap-4"></div>
+        <div class="mb-auto">
+             <div id="stamps-grid" class="grid grid-cols-3 gap-4"></div>
         </div>
 
-        <!-- Success Message Overlay -->
+        <!-- Success Message Overlay (Original + Updated logic) -->
         <div id="success-overlay" class="hidden fixed inset-0 z-40 bg-white/95 flex flex-col items-center justify-center text-center p-6 animate-fade-in">
             <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
                 <svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
@@ -85,23 +85,25 @@
                     <div id="qrcode"></div>
                     <div id="qr-expired" class="hidden absolute inset-0 bg-white/90 flex items-center justify-center font-bold text-red-500">Код истек</div>
                 </div>
-                <p id="qr-hint" class="text-center font-medium text-gray-800 mb-2">...</p>
+                <!-- [NEW] Подсказка о типе операции -->
+                <p id="qr-hint" class="text-center font-medium text-gray-800 mb-2 text-sm">...</p>
+                
                 <div class="w-full max-w-[200px]">
                     <div class="h-1.5 bg-gray-100 rounded-full overflow-hidden mb-2">
                         <div id="timer-bar" class="h-full bg-blue-500 transition-all duration-1000 ease-linear" style="width: 100%"></div>
                     </div>
+                    <p class="text-center text-xs text-gray-400">Обновление через <span id="timer-val">300</span> сек</p>
                 </div>
             </div>
         </div>
 
-        <!-- Main Action (Original style, new logic) -->
-        <button onclick="openQR('EARN')" class="mt-4 w-full py-4 bg-blue-600 text-white text-lg font-bold rounded-xl shadow-lg shadow-blue-200 active:scale-95 transition-transform flex items-center justify-center gap-2">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+        <!-- Main Action (Original button) -->
+        <button onclick="openQR('EARN')" class="mt-4 w-full py-4 bg-blue-600 text-white text-lg font-bold rounded-xl shadow-lg shadow-blue-200 active:scale-95 transition-transform">
             Получить штамп
         </button>
     </div>
 
-    <!-- === ADMIN UI === -->
+    <!-- === ADMIN UI (Original structure + New Logic) === -->
     <div id="admin-view" class="hidden flex-col h-full items-center justify-center p-6 text-center">
         <div class="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mb-6">
             <svg class="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
@@ -114,7 +116,7 @@
         <div id="scan-status" class="mt-4 text-sm font-medium h-6"></div>
     </div>
 
-    <!-- === ADMIN DECISION MODAL (New: Всплывающее окно выбора) === -->
+    <!-- === [NEW] ADMIN DECISION MODAL === -->
     <div id="admin-decision-modal" class="hidden fixed inset-0 z-[70] bg-black/80 flex items-end sm:items-center justify-center">
         <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-6 modal-enter">
             <div class="flex justify-between items-start mb-4">
@@ -126,7 +128,7 @@
             </div>
             
             <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
-                <p class="text-yellow-800 text-sm">У клиента есть бонусы (<span id="decision-bonus-count" class="font-bold">0</span>), но он предъявил карту для накопления.</p>
+                <p class="text-yellow-800 text-sm">У клиента есть бонусы (<span id="decision-bonus-count" class="font-bold">0</span>), но он показал карту накопления.</p>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
@@ -144,16 +146,16 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // ⚠️ Вставьте ваш актуальный URL
+        // ⚠️ КОНФИГУРАЦИЯ
         const API_BASE = 'https://n8n.inflio.xyz/webhook'; 
 
         const currentUser = tg.initDataUnsafe?.user;
         let currentSessionId = null;
-        let pendingDecisionSessionId = null; // ID для повторного запроса (конфликт)
+        let pendingDecisionSessionId = null;
         let pollInterval = null;
         let timerInterval = null;
         
-        // Хранилище состояния пользователя для обновления UI без лишних запросов
+        // Хранилище состояния (чтобы не терять данные между апдейтами)
         let lastUserState = {};
 
         // === INITIALIZATION ===
@@ -165,6 +167,7 @@
             }
 
             try {
+                // Запрашиваем полные данные
                 const res = await fetch(`${API_BASE}/init-app?id=${currentUser.id}&first_name=${currentUser.first_name}`);
                 const data = await res.json();
                 lastUserState = Array.isArray(data) ? data[0] : data;
@@ -190,25 +193,25 @@
         }
 
         function updateClientState(user) {
-            // 1. Обновляем ранг (Бейдж)
+            // 1. Ранг
             const stamps = user.total_stamps !== undefined ? user.total_stamps : (lastUserState.total_stamps || 0);
             let rank = 'Новичок';
             if (stamps > 10) rank = 'Любитель';
             if (stamps > 50) rank = 'Кофеман ☕️';
             document.getElementById('user-rank').innerText = rank;
 
-            // 2. Логика Бонусной Карты
+            // 2. Бонусная карта
             const bonusCount = user.bonus_cups !== undefined ? user.bonus_cups : (lastUserState.bonus_cups || 0);
             const bonusCard = document.getElementById('bonus-card');
             
             if (bonusCount > 0) {
-                bonusCard.classList.remove('hidden'); // Показываем карточку
+                bonusCard.classList.remove('hidden'); 
                 document.getElementById('bonus-count').innerText = bonusCount;
             } else {
                 bonusCard.classList.add('hidden');
             }
 
-            // 3. Рисуем штампы
+            // 3. Сетка штампов
             renderStamps(user.balance !== undefined ? user.balance : (lastUserState.balance || 0));
         }
 
@@ -225,14 +228,14 @@
         }
 
         // === QR LOGIC (Client) ===
-        // intent: 'EARN' (по умолчанию) или 'REDEEM' (списание)
+        // intent: 'EARN' (Накопить) или 'REDEEM' (Списать)
         async function openQR(intent = 'EARN') {
             document.getElementById('qr-modal').classList.remove('hidden');
             document.getElementById('qr-modal').classList.add('flex');
             
-            // Динамический заголовок
-            const title = intent === 'REDEEM' ? 'Списание бонуса' : 'Начисление штампа';
-            const hint = intent === 'REDEEM' ? 'Бариста спишет 1 подарочную чашку' : 'Бариста начислит штамп за покупку';
+            // Динамический UI для модалки
+            const title = intent === 'REDEEM' ? 'Списание бонуса' : 'Покажите бариста';
+            const hint = intent === 'REDEEM' ? 'Бариста спишет 1 подарочную чашку' : 'Для начисления штампа';
             document.getElementById('qr-title').innerText = title;
             document.getElementById('qr-hint').innerText = hint;
 
@@ -263,11 +266,13 @@
         function startTimer() {
             let timeLeft = 300;
             const bar = document.getElementById('timer-bar');
+            const val = document.getElementById('timer-val');
             document.getElementById('qr-expired').classList.add('hidden');
             
             if(timerInterval) clearInterval(timerInterval);
             timerInterval = setInterval(() => {
                 timeLeft--;
+                val.innerText = timeLeft;
                 bar.style.width = `${(timeLeft/300)*100}%`;
                 if(timeLeft <= 0) {
                     clearInterval(timerInterval);
@@ -293,17 +298,24 @@
         }
 
         function showSuccess(data) {
-            document.getElementById('success-title').innerText = 'Успешно!';
-            document.getElementById('success-message').innerText = 'Данные карты обновлены';
+            const overlay = document.getElementById('success-overlay');
+            const title = document.getElementById('success-title');
+            const msg = document.getElementById('success-message');
+
+            title.innerText = 'Успешно!';
+            msg.innerText = 'Данные обновлены';
             
-            // Если пришли новые данные, обновляем стейт
+            // Если пришли полные данные (V2), обновляем стейт
             if (data.bonus_cups !== undefined) {
                 lastUserState.balance = data.balance;
                 lastUserState.bonus_cups = data.bonus_cups;
                 updateClientState(lastUserState);
+            } else {
+                // Fallback для старой логики (на всякий случай)
+                renderStamps(data.balance || data); 
             }
             
-            document.getElementById('success-overlay').classList.remove('hidden');
+            overlay.classList.remove('hidden');
             tg.HapticFeedback.notificationOccurred('success');
         }
 
@@ -325,14 +337,14 @@
             });
         }
 
-        // Основная функция обработки скана
+        // Логика V2 с обработкой решения администратора
         async function processScan(qrText, forceAction = null) {
             const statusDiv = document.getElementById('scan-status');
             statusDiv.innerHTML = '<span class="text-blue-500">Обработка...</span>';
             
             try {
                 let sessionId;
-                // Если это ручной выбор действия (forceAction), берем ID из памяти
+                // Если это решение админа (forceAction) - берем сохраненный ID
                 if (forceAction && pendingDecisionSessionId) {
                     sessionId = pendingDecisionSessionId;
                 } else {

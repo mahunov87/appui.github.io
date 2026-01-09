@@ -13,108 +13,108 @@
         .stamp.active { background-color: #F59E0B; color: white; border-color: #D97706; transform: scale(1.05); }
         .stamp.empty { background-color: #F3F4F6; color: #9CA3AF; border-color: #E5E7EB; }
         
-        /* Анимации */
+        /* Анимация для модального окна админа */
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
         .modal-enter { animation: slideUp 0.3s ease-out forwards; }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen text-gray-900 overflow-hidden relative">
+<body class="bg-white min-h-screen text-gray-900 overflow-hidden relative">
 
     <!-- Loading Screen -->
     <div id="loader" class="absolute inset-0 z-50 flex items-center justify-center bg-white">
         <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
     </div>
 
-    <!-- === STUB VIEW === -->
+    <!-- === STUB VIEW (Заглушка) === -->
     <div id="stub-view" class="hidden fixed inset-0 z-[60] bg-gray-50 flex flex-col items-center justify-center p-6 text-center">
         <div class="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mb-4 text-3xl">📱</div>
         <h2 class="text-xl font-bold mb-2">Только для Telegram</h2>
-        <p class="text-gray-500">Откройте приложение через бота.</p>
+        <p class="text-gray-500">Пожалуйста, откройте это приложение через бота.</p>
     </div>
 
-    <!-- === CLIENT VIEW === -->
+    <!-- === CLIENT UI === -->
     <div id="client-view" class="hidden flex-col h-full px-6 py-4">
-        <!-- Header & Status -->
-        <header class="mt-2 mb-6">
-            <div class="flex justify-between items-end mb-2">
-                <h1 class="text-2xl font-black text-gray-800 tracking-tight">BONUS CARD</h1>
-                <span id="user-rank" class="px-3 py-1 bg-yellow-100 text-yellow-700 text-xs font-bold rounded-full uppercase tracking-wide">Новичок</span>
+        <header class="mt-2 mb-6 flex justify-between items-end">
+            <div>
+                <h1 class="text-2xl font-black text-gray-800 tracking-tight">COFFEE BONUS</h1>
+                <p class="text-sm text-gray-500 font-medium mt-1">6-й кофе в подарок</p>
             </div>
-            <p class="text-sm text-gray-500 font-medium">Копите штампы, получайте кофе!</p>
+            <!-- Бейдж ранга (New) -->
+            <span id="user-rank" class="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-bold rounded-full uppercase tracking-wide mb-1">
+                Загрузка...
+            </span>
         </header>
 
-        <!-- Bonus Info Card -->
-        <div id="bonus-card" class="bg-gradient-to-r from-gray-900 to-gray-800 rounded-2xl p-5 text-white shadow-lg mb-6 hidden">
+        <!-- Bonus Info Card (New: Скрыт, если бонусов нет) -->
+        <div id="bonus-card" class="bg-gray-900 rounded-2xl p-5 text-white shadow-lg mb-6 hidden transition-all">
             <div class="flex justify-between items-center">
                 <div>
-                    <p class="text-gray-400 text-xs font-bold uppercase mb-1">Доступно бонусов</p>
+                    <p class="text-gray-400 text-xs font-bold uppercase mb-1">Ваши бонусы</p>
                     <p class="text-3xl font-bold"><span id="bonus-count">0</span> ☕️</p>
                 </div>
+                <!-- Кнопка списания бонуса -->
                 <button onclick="openQR('REDEEM')" class="bg-white text-gray-900 px-4 py-2 rounded-lg text-sm font-bold shadow active:scale-95 transition-transform">
-                    Использовать
+                    Списать
                 </button>
             </div>
         </div>
 
-        <!-- Stamps Grid -->
+        <!-- Cards Grid (Original) -->
         <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-auto">
-            <p class="text-xs font-bold text-gray-400 uppercase mb-4 text-center">Ваш прогресс</p>
             <div id="stamps-grid" class="grid grid-cols-3 gap-4"></div>
         </div>
 
-        <!-- Main Action -->
+        <!-- Success Message Overlay -->
+        <div id="success-overlay" class="hidden fixed inset-0 z-40 bg-white/95 flex flex-col items-center justify-center text-center p-6 animate-fade-in">
+            <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                <svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+            </div>
+            <h2 id="success-title" class="text-2xl font-bold text-gray-900 mb-2">Готово!</h2>
+            <p id="success-message" class="text-gray-600 mb-8">Баланс обновлен</p>
+            <button onclick="hideSuccess()" class="w-full py-4 bg-gray-900 text-white font-bold rounded-xl active:scale-95 transition-transform">Отлично</button>
+        </div>
+
+        <!-- QR Modal (Updated for intents) -->
+        <div id="qr-modal" class="hidden fixed inset-0 z-30 bg-white flex flex-col p-6">
+            <div class="flex justify-between items-center mb-8">
+                <h3 class="font-bold text-lg" id="qr-title">Покажите бариста</h3>
+                <button onclick="closeQR()" class="p-2 bg-gray-100 rounded-full">✕</button>
+            </div>
+            <div class="flex-1 flex flex-col items-center justify-center">
+                <div class="bg-white p-4 rounded-2xl shadow-xl border border-gray-100 mb-6 relative">
+                    <div id="qrcode"></div>
+                    <div id="qr-expired" class="hidden absolute inset-0 bg-white/90 flex items-center justify-center font-bold text-red-500">Код истек</div>
+                </div>
+                <p id="qr-hint" class="text-center font-medium text-gray-800 mb-2">...</p>
+                <div class="w-full max-w-[200px]">
+                    <div class="h-1.5 bg-gray-100 rounded-full overflow-hidden mb-2">
+                        <div id="timer-bar" class="h-full bg-blue-500 transition-all duration-1000 ease-linear" style="width: 100%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Action (Original style, new logic) -->
         <button onclick="openQR('EARN')" class="mt-4 w-full py-4 bg-blue-600 text-white text-lg font-bold rounded-xl shadow-lg shadow-blue-200 active:scale-95 transition-transform flex items-center justify-center gap-2">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
             Получить штамп
         </button>
     </div>
 
-    <!-- === QR MODAL (Client) === -->
-    <div id="qr-modal" class="hidden fixed inset-0 z-30 bg-white flex flex-col p-6">
-        <div class="flex justify-between items-center mb-8">
-            <h3 class="font-bold text-lg" id="qr-title">Покажите бариста</h3>
-            <button onclick="closeQR()" class="p-2 bg-gray-100 rounded-full">✕</button>
-        </div>
-        <div class="flex-1 flex flex-col items-center justify-center">
-            <div class="bg-white p-4 rounded-2xl shadow-xl border border-gray-100 mb-6 relative">
-                <div id="qrcode"></div>
-                <!-- Expired Overlay -->
-                <div id="qr-expired" class="hidden absolute inset-0 bg-white/90 flex items-center justify-center font-bold text-red-500">Код истек</div>
-            </div>
-            <p id="qr-hint" class="text-center font-medium text-gray-800 mb-2">Сканирование...</p>
-            <div class="w-full max-w-[200px]">
-                <div class="h-1.5 bg-gray-100 rounded-full overflow-hidden mb-2">
-                    <div id="timer-bar" class="h-full bg-blue-500 transition-all duration-1000 ease-linear" style="width: 100%"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- === SUCCESS OVERLAY === -->
-    <div id="success-overlay" class="hidden fixed inset-0 z-40 bg-white/95 flex flex-col items-center justify-center text-center p-6 animate-fade-in">
-        <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
-            <svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
-        </div>
-        <h2 id="success-title" class="text-2xl font-bold text-gray-900 mb-2">Готово!</h2>
-        <p id="success-message" class="text-gray-600 mb-8">Баланс обновлен</p>
-        <button onclick="hideSuccess()" class="w-full py-4 bg-gray-900 text-white font-bold rounded-xl active:scale-95 transition-transform">Отлично</button>
-    </div>
-
-    <!-- === ADMIN VIEW === -->
-    <div id="admin-view" class="hidden flex-col h-full items-center justify-center p-6 text-center bg-gray-900 text-white">
-        <div class="w-24 h-24 bg-blue-600/20 rounded-full flex items-center justify-center mb-6">
-            <svg class="w-12 h-12 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+    <!-- === ADMIN UI === -->
+    <div id="admin-view" class="hidden flex-col h-full items-center justify-center p-6 text-center">
+        <div class="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mb-6">
+            <svg class="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
         </div>
         <h2 class="text-2xl font-bold mb-2">Режим Сканера</h2>
-        <p class="text-gray-400 mb-8">Вы вошли как администратор</p>
-        
+        <p class="text-gray-500 mb-8">Вы вошли как администратор</p>
         <button onclick="scanQR()" class="w-full max-w-xs py-4 bg-blue-600 text-white font-bold rounded-xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2">
             📷 Сканировать QR
         </button>
         <div id="scan-status" class="mt-4 text-sm font-medium h-6"></div>
     </div>
 
-    <!-- === ADMIN DECISION MODAL (Всплывающее окно выбора) === -->
+    <!-- === ADMIN DECISION MODAL (New: Всплывающее окно выбора) === -->
     <div id="admin-decision-modal" class="hidden fixed inset-0 z-[70] bg-black/80 flex items-end sm:items-center justify-center">
         <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-6 modal-enter">
             <div class="flex justify-between items-start mb-4">
@@ -126,7 +126,7 @@
             </div>
             
             <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
-                <p class="text-yellow-800 text-sm">У клиента есть неиспользованные бонусы (<span id="decision-bonus-count" class="font-bold">0</span>), но он предъявил карту для накопления.</p>
+                <p class="text-yellow-800 text-sm">У клиента есть бонусы (<span id="decision-bonus-count" class="font-bold">0</span>), но он предъявил карту для накопления.</p>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
@@ -144,16 +144,16 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // ⚠️ КОНФИГУРАЦИЯ: Вставьте ваш URL без Markdown!
+        // ⚠️ Вставьте ваш актуальный URL
         const API_BASE = 'https://n8n.inflio.xyz/webhook'; 
 
         const currentUser = tg.initDataUnsafe?.user;
         let currentSessionId = null;
-        let pendingDecisionSessionId = null; 
+        let pendingDecisionSessionId = null; // ID для повторного запроса (конфликт)
         let pollInterval = null;
         let timerInterval = null;
         
-        // Хранилище состояния пользователя для корректного обновления UI
+        // Хранилище состояния пользователя для обновления UI без лишних запросов
         let lastUserState = {};
 
         // === INITIALIZATION ===
@@ -167,7 +167,6 @@
             try {
                 const res = await fetch(`${API_BASE}/init-app?id=${currentUser.id}&first_name=${currentUser.first_name}`);
                 const data = await res.json();
-                // Сохраняем начальное состояние
                 lastUserState = Array.isArray(data) ? data[0] : data;
                 
                 document.getElementById('loader').classList.add('hidden');
@@ -179,7 +178,7 @@
                 }
             } catch (e) {
                 console.error(e);
-                tg.showAlert("Ошибка соединения");
+                tg.showAlert("Ошибка соединения с сервером");
             }
         }
 
@@ -187,30 +186,29 @@
         function showClientUI(user) {
             document.getElementById('client-view').classList.remove('hidden');
             document.getElementById('client-view').classList.add('flex');
-            
             updateClientState(user);
         }
 
         function updateClientState(user) {
-            // Rank logic: используем сохраненное значение или 0
+            // 1. Обновляем ранг (Бейдж)
             const stamps = user.total_stamps !== undefined ? user.total_stamps : (lastUserState.total_stamps || 0);
-            
             let rank = 'Новичок';
             if (stamps > 10) rank = 'Любитель';
             if (stamps > 50) rank = 'Кофеман ☕️';
             document.getElementById('user-rank').innerText = rank;
 
-            // Bonus card visibility
+            // 2. Логика Бонусной Карты
             const bonusCount = user.bonus_cups !== undefined ? user.bonus_cups : (lastUserState.bonus_cups || 0);
-            
             const bonusCard = document.getElementById('bonus-card');
+            
             if (bonusCount > 0) {
-                bonusCard.classList.remove('hidden');
+                bonusCard.classList.remove('hidden'); // Показываем карточку
                 document.getElementById('bonus-count').innerText = bonusCount;
             } else {
                 bonusCard.classList.add('hidden');
             }
 
+            // 3. Рисуем штампы
             renderStamps(user.balance !== undefined ? user.balance : (lastUserState.balance || 0));
         }
 
@@ -226,13 +224,19 @@
             }
         }
 
-        // === QR LOGIC ===
-        async function openQR(intent) {
+        // === QR LOGIC (Client) ===
+        // intent: 'EARN' (по умолчанию) или 'REDEEM' (списание)
+        async function openQR(intent = 'EARN') {
             document.getElementById('qr-modal').classList.remove('hidden');
             document.getElementById('qr-modal').classList.add('flex');
-            document.getElementById('qr-title').innerText = intent === 'REDEEM' ? 'Списание бонуса' : 'Начисление штампа';
-            document.getElementById('qr-hint').innerText = intent === 'REDEEM' ? 'Бариста спишет 1 чашку' : 'Бариста начислит штамп';
+            
+            // Динамический заголовок
+            const title = intent === 'REDEEM' ? 'Списание бонуса' : 'Начисление штампа';
+            const hint = intent === 'REDEEM' ? 'Бариста спишет 1 подарочную чашку' : 'Бариста начислит штамп за покупку';
+            document.getElementById('qr-title').innerText = title;
+            document.getElementById('qr-hint').innerText = hint;
 
+            // Запрос с intent
             const res = await fetch(`${API_BASE}/get-qr?user_id=${currentUser.id}&intent=${intent}`);
             const data = await res.json();
             const session = Array.isArray(data) ? data[0] : data;
@@ -285,14 +289,15 @@
                         showSuccess(statusData); 
                     }
                 } catch(e) { console.error("Poll error", e); }
-            }, 2000);
+            }, 2500);
         }
 
         function showSuccess(data) {
             document.getElementById('success-title').innerText = 'Успешно!';
+            document.getElementById('success-message').innerText = 'Данные карты обновлены';
             
+            // Если пришли новые данные, обновляем стейт
             if (data.bonus_cups !== undefined) {
-                 // Обновляем локальный стейт, сохраняя total_stamps неизменным
                 lastUserState.balance = data.balance;
                 lastUserState.bonus_cups = data.bonus_cups;
                 updateClientState(lastUserState);
@@ -320,12 +325,14 @@
             });
         }
 
+        // Основная функция обработки скана
         async function processScan(qrText, forceAction = null) {
             const statusDiv = document.getElementById('scan-status');
-            statusDiv.innerHTML = '<span class="text-blue-400">Обработка...</span>';
+            statusDiv.innerHTML = '<span class="text-blue-500">Обработка...</span>';
             
             try {
                 let sessionId;
+                // Если это ручной выбор действия (forceAction), берем ID из памяти
                 if (forceAction && pendingDecisionSessionId) {
                     sessionId = pendingDecisionSessionId;
                 } else {
@@ -366,11 +373,14 @@
                 closeDecisionModal(); 
             } 
             else if (result.status === 'confirmation_required') {
+                // ⚠️ ВАЖНО: Обработка конфликта (Backend просит решения)
                 statusDiv.innerHTML = '⚠️ Требуется действие';
                 pendingDecisionSessionId = sessionId; 
                 
                 document.getElementById('decision-client-name').innerText = result.user_name || 'Клиент';
                 document.getElementById('decision-bonus-count').innerText = result.bonus_cups;
+                
+                // Открываем модалку выбора
                 document.getElementById('admin-decision-modal').classList.remove('hidden');
                 document.getElementById('admin-decision-modal').classList.add('flex');
                 tg.HapticFeedback.notificationOccurred('warning');

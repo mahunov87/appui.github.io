@@ -950,7 +950,8 @@
                 
                 // Hydrate State
                 State.user = user;
-                State.config = data.business_config || State.config; 
+                // FIX: Merge business_name into config so it is available for settings form
+                State.config = { ...data.business_config, name: data.business_name } || State.config; 
                 State.balance = data.balance;
                 State.bonusCups = data.bonus_cups;
                 State.totalStamps = data.total_stamps;

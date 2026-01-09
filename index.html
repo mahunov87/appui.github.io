@@ -356,11 +356,11 @@
         const State = {
             user: null,
             balance: 0,
-            bonusCups: 0, // [NEW]
+            bonusCups: 0, 
             totalStamps: 0,
             rank: 'Новичок',
             currentSessionId: null,
-            qrIntent: 'EARN' // 'EARN' or 'REDEEM'
+            qrIntent: 'EARN' 
         };
 
         // --- ROUTER ---
@@ -375,22 +375,19 @@
                     target.classList.add('active');
                     this.history.push(viewId);
                     
-                    // Logic per View
                     if(viewId === 'qr') {
-                        State.qrIntent = param || 'EARN'; // Set intent
+                        State.qrIntent = param || 'EARN'; 
                         QRManager.generate();
-                        UIManager.updateQRView(); // Visual update
+                        UIManager.updateQRView(); 
                     }
                     if(viewId === 'home') UIManager.updateHome();
                     if(viewId === 'card') UIManager.renderCard();
-                    if(viewId === 'bonuses') UIManager.updateBonuses(); // [NEW]
+                    if(viewId === 'bonuses') UIManager.updateBonuses(); 
                 }
                 
-                // Back Button
                 if(this.history.length > 1) tg.BackButton.show();
                 else tg.BackButton.hide();
                 
-                // Refresh Icons
                 setTimeout(() => lucide.createIcons(), 50);
             },
 
@@ -409,36 +406,64 @@
             }
         };
 
-        // --- API ---
+        // --- API SECURITY LAYER ---
         const API = {
+            // Centralized Request Handler with Auth Headers
+            async request(endpoint, method = 'GET', body = null) {
+                const headers = {
+                    'Content-Type': 'application/json',
+                    // 🔒 SECURITY: Send Telegram InitData in Header
+                    'X-Telegram-Auth': tg.initData || ''
+                };
+
+                const config = { method, headers };
+                if (body) config.body = JSON.stringify(body);
+
+                // Build Query String if GET and params exist
+                let url = `${API_BASE}/${endpoint}`;
+                if (method === 'GET' && body) {
+                    const params = new URLSearchParams(body).toString();
+                    url += `?${params}`;
+                    delete config.body;
+                }
+
+                try {
+                    const res = await fetch(url, config);
+                    if (!res.ok) throw new Error(`API Error: ${res.status}`);
+                    return await res.json();
+                } catch (e) {
+                    console.error("Network Error:", e);
+                    throw e;
+                }
+            },
+
             async initUser() {
                 const u = tg.initDataUnsafe.user;
-                const res = await fetch(`${API_BASE}/init-app?id=${u.id}&first_name=${u.first_name}`);
-                return await res.json();
+                // We still send query params for backward compatibility,
+                // but the backend should ideally switch to using the Header.
+                return await this.request('init-app', 'GET', { 
+                    id: u.id, 
+                    first_name: u.first_name 
+                });
             },
             
-            // [UPDATED] Send intent
             async getQR(userId, intent) {
-                const res = await fetch(`${API_BASE}/get-qr?user_id=${userId}&intent=${intent}`);
-                return await res.json();
+                return await this.request('get-qr', 'GET', { 
+                    user_id: userId, 
+                    intent: intent 
+                });
             },
             
             async checkStatus(sessionId) {
-                const res = await fetch(`${API_BASE}/check-status?session_id=${sessionId}`);
-                return await res.json();
+                return await this.request('check-status', 'GET', { 
+                    session_id: sessionId 
+                });
             },
 
-            // [UPDATED] Supports forced action
             async scanQR(adminId, qrSession, action = null) {
                 const body = { admin_id: adminId, qr_session: qrSession };
                 if (action) body.action = action;
-
-                const res = await fetch(`${API_BASE}/scan-qr`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(body)
-                });
-                return await res.json();
+                return await this.request('scan-qr', 'POST', body);
             }
         };
 
@@ -450,7 +475,6 @@
                 document.getElementById('stamps-left').innerText = 6 - State.balance;
                 document.getElementById('total-stamps').innerText = State.totalStamps;
                 
-                // Bonus Button State
                 const bonusText = document.getElementById('home-bonus-count');
                 if (State.bonusCups > 0) {
                     bonusText.innerText = `Доступно: ${State.bonusCups} шт.`;
@@ -462,7 +486,6 @@
                     bonusText.classList.add('text-gray-400');
                 }
 
-                // Rank
                 let rank = "Новичок";
                 if(State.totalStamps > 10) rank = "Любитель";
                 if(State.totalStamps > 30) rank = "Кофеман";
@@ -532,14 +555,12 @@
                 document.getElementById('qr-expired').classList.add('hidden');
                 document.getElementById('qrcode').innerHTML = '';
                 
-                // Loader
                 const loading = document.createElement('div');
                 loading.className = "w-[200px] h-[200px] flex items-center justify-center";
                 loading.innerHTML = '<div class="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>';
                 document.getElementById('qrcode').appendChild(loading);
 
                 try {
-                    // [UPDATED] Pass intent
                     const data = await API.getQR(State.user.id, State.qrIntent);
                     const session = Array.isArray(data) ? data[0] : data;
                     State.currentSessionId = session.session_id;
@@ -586,12 +607,10 @@
                         
                         if (statusData.status === 'USED') {
                             this.stop();
-                            // Update State
                             State.balance = statusData.balance || 0;
                             State.bonusCups = statusData.bonus_cups || 0;
-                            State.totalStamps = (State.totalStamps || 0) + 1; // Approx update
+                            State.totalStamps = (State.totalStamps || 0) + 1;
 
-                            // Smart Success Message
                             const title = document.getElementById('success-title');
                             const msg = document.getElementById('success-message');
                             
@@ -644,7 +663,6 @@
                             statusEl.innerHTML = '<span class="text-green-600 font-bold">✅ Успешно</span>';
                         } 
                         else if (result.status === 'confirmation_required') {
-                            // [NEW] Handle Conflict
                             this.conflictSessionId = result.session_id;
                             document.getElementById('conflict-username').innerText = result.user_name || 'Клиент';
                             document.getElementById('conflict-bonus-count').innerText = result.bonus_cups;
@@ -667,7 +685,7 @@
             },
 
             async resolve(action) {
-                this.closeConflictModal();
+                this.closeConflict();
                 const statusEl = document.getElementById('scan-status');
                 statusEl.innerHTML = '<span class="text-blue-600 animate-pulse">Применение...</span>';
 
@@ -687,9 +705,6 @@
                 }
             },
 
-            closeConflictModal() { // Renamed from closeConflict
-                 this.closeConflict();
-            },
             closeConflict() {
                 document.getElementById('admin-conflict-modal').classList.add('hidden');
                 this.conflictSessionId = null;
@@ -713,10 +728,9 @@
                 const data = await API.initUser();
                 const userData = Array.isArray(data) ? data[0] : data;
                 
-                // Hydrate State
                 State.user = u;
                 State.balance = userData.balance || 0;
-                State.bonusCups = userData.bonus_cups || 0; // [NEW]
+                State.bonusCups = userData.bonus_cups || 0; 
                 State.totalStamps = userData.total_stamps || 0;
                 
                 document.getElementById('loader').classList.add('hidden');

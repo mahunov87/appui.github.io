@@ -8,155 +8,135 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
-        body { font-family: -apple-system, system-ui, sans-serif; user-select: none; }
+        body { font-family: -apple-system, system-ui, sans-serif; user-select: none; -webkit-tap-highlight-color: transparent; }
         .stamp { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         .stamp.active { background-color: #F59E0B; color: white; border-color: #D97706; transform: scale(1.05); }
         .stamp.empty { background-color: #F3F4F6; color: #9CA3AF; border-color: #E5E7EB; }
-        
-        /* Анимации для модальных окон */
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-        .modal-enter { animation: slideUp 0.3s ease-out forwards; }
+        .btn-press { transition: transform 0.1s; }
+        .btn-press:active { transform: scale(0.96); }
     </style>
 </head>
-<body class="bg-white min-h-screen text-gray-900 overflow-hidden relative">
+<body class="bg-gray-50 min-h-screen text-gray-900 overflow-hidden relative">
 
-    <!-- Loading Screen -->
+    <!-- Loader -->
     <div id="loader" class="absolute inset-0 z-50 flex items-center justify-center bg-white">
         <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
     </div>
 
-    <!-- === STUB VIEW (Заглушка) === -->
+    <!-- Stub View -->
     <div id="stub-view" class="hidden fixed inset-0 z-[60] bg-gray-50 flex flex-col items-center justify-center p-6 text-center">
-        <div class="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mb-4 text-3xl">📱</div>
+        <div class="text-4xl mb-4">📱</div>
         <h2 class="text-xl font-bold mb-2">Только для Telegram</h2>
-        <p class="text-gray-500">Пожалуйста, откройте это приложение через бота.</p>
     </div>
 
     <!-- === CLIENT UI === -->
-    <div id="client-view" class="hidden flex-col h-full px-6 py-4">
-        <header class="text-center mt-2 mb-6">
-            <h1 class="text-2xl font-black text-gray-800 tracking-tight">COFFEE BONUS</h1>
-            <p class="text-sm text-gray-500 font-medium mt-1">6-й кофе в подарок</p>
-            <!-- [NEW] Rank Badge: Внедрен в существующий хедер -->
-            <div class="mt-2">
-                <span id="user-rank" class="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-bold rounded-full uppercase tracking-wide">
-                    Загрузка...
-                </span>
+    <div id="client-view" class="hidden flex-col h-full px-5 py-4 max-w-md mx-auto">
+        <!-- Header & Status -->
+        <header class="flex justify-between items-center mb-6">
+            <div>
+                <h1 class="text-2xl font-black text-gray-800 tracking-tight">COFFEE BONUS</h1>
+                <div class="flex items-center gap-2 mt-1">
+                    <span id="user-status" class="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-bold rounded-md">Новичок</span>
+                    <span class="text-xs text-gray-400">| 6-й кофе в подарок</span>
+                </div>
+            </div>
+            <div id="bonus-badge" class="hidden flex-col items-end">
+                <span class="text-2xl font-bold text-orange-500" id="bonus-count">0</span>
+                <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Бонусов</span>
             </div>
         </header>
 
-        <!-- [NEW] Bonus Info Card: Скрыт по умолчанию -->
-        <div id="bonus-card" class="bg-gray-900 rounded-2xl p-5 text-white shadow-lg mb-6 hidden transition-all">
-            <div class="flex justify-between items-center">
-                <div>
-                    <p class="text-gray-400 text-xs font-bold uppercase mb-1">Ваши бонусы</p>
-                    <p class="text-3xl font-bold"><span id="bonus-count">0</span> ☕️</p>
-                </div>
-                <!-- Кнопка списания бонуса -->
-                <button onclick="openQR('REDEEM')" class="bg-white text-gray-900 px-4 py-2 rounded-lg text-sm font-bold shadow active:scale-95 transition-transform">
-                    Списать
-                </button>
-            </div>
+        <!-- Cards Grid -->
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6">
+            <div id="stamps-grid" class="grid grid-cols-3 gap-3"></div>
         </div>
 
-        <!-- Cards Grid (Original) -->
-        <div class="mb-auto">
-             <div id="stamps-grid" class="grid grid-cols-3 gap-4"></div>
-        </div>
-
-        <!-- Success Message Overlay (Original + Updated logic) -->
-        <div id="success-overlay" class="hidden fixed inset-0 z-40 bg-white/95 flex flex-col items-center justify-center text-center p-6 animate-fade-in">
-            <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                <svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
-            </div>
-            <h2 id="success-title" class="text-2xl font-bold text-gray-900 mb-2">Готово!</h2>
-            <p id="success-message" class="text-gray-600 mb-8">Баланс обновлен</p>
-            <button onclick="hideSuccess()" class="w-full py-4 bg-gray-900 text-white font-bold rounded-xl active:scale-95 transition-transform">Отлично</button>
-        </div>
-
-        <!-- QR Modal (Updated for intents) -->
-        <div id="qr-modal" class="hidden fixed inset-0 z-30 bg-white flex flex-col p-6">
-            <div class="flex justify-between items-center mb-8">
-                <h3 class="font-bold text-lg" id="qr-title">Покажите бариста</h3>
-                <button onclick="closeQR()" class="p-2 bg-gray-100 rounded-full">✕</button>
-            </div>
-            <div class="flex-1 flex flex-col items-center justify-center">
-                <div class="bg-white p-4 rounded-2xl shadow-xl border border-gray-100 mb-6 relative">
-                    <div id="qrcode"></div>
-                    <div id="qr-expired" class="hidden absolute inset-0 bg-white/90 flex items-center justify-center font-bold text-red-500">Код истек</div>
-                </div>
-                <!-- [NEW] Подсказка о типе операции -->
-                <p id="qr-hint" class="text-center font-medium text-gray-800 mb-2 text-sm">...</p>
-                
-                <div class="w-full max-w-[200px]">
-                    <div class="h-1.5 bg-gray-100 rounded-full overflow-hidden mb-2">
-                        <div id="timer-bar" class="h-full bg-blue-500 transition-all duration-1000 ease-linear" style="width: 100%"></div>
-                    </div>
-                    <p class="text-center text-xs text-gray-400">Обновление через <span id="timer-val">300</span> сек</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Main Action (Original button) -->
-        <button onclick="openQR('EARN')" class="mt-4 w-full py-4 bg-blue-600 text-white text-lg font-bold rounded-xl shadow-lg shadow-blue-200 active:scale-95 transition-transform">
-            Получить штамп
-        </button>
-    </div>
-
-    <!-- === ADMIN UI (Original structure + New Logic) === -->
-    <div id="admin-view" class="hidden flex-col h-full items-center justify-center p-6 text-center">
-        <div class="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mb-6">
-            <svg class="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
-        </div>
-        <h2 class="text-2xl font-bold mb-2">Режим Сканера</h2>
-        <p class="text-gray-500 mb-8">Вы вошли как администратор</p>
-        <button onclick="scanQR()" class="w-full max-w-xs py-4 bg-blue-600 text-white font-bold rounded-xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2">
-            📷 Сканировать QR
-        </button>
-        <div id="scan-status" class="mt-4 text-sm font-medium h-6"></div>
-    </div>
-
-    <!-- === [NEW] ADMIN DECISION MODAL === -->
-    <div id="admin-decision-modal" class="hidden fixed inset-0 z-[70] bg-black/80 flex items-end sm:items-center justify-center">
-        <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-6 modal-enter">
-            <div class="flex justify-between items-start mb-4">
-                <div>
-                    <h3 class="text-xl font-bold text-gray-900">Выбор действия</h3>
-                    <p class="text-gray-500 text-sm mt-1">Клиент: <span id="decision-client-name" class="font-bold">...</span></p>
-                </div>
-                <button onclick="closeDecisionModal()" class="p-2 bg-gray-100 rounded-full text-gray-500">✕</button>
-            </div>
+        <!-- Action Buttons -->
+        <div class="mt-auto space-y-3 pb-4">
+            <button onclick="openQR('EARN')" class="btn-press w-full py-4 bg-gray-900 text-white text-lg font-bold rounded-2xl shadow-lg shadow-gray-200 flex items-center justify-center gap-2">
+                <span>☕️</span> Получить штамп
+            </button>
             
-            <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
-                <p class="text-yellow-800 text-sm">У клиента есть бонусы (<span id="decision-bonus-count" class="font-bold">0</span>), но он показал карту накопления.</p>
-            </div>
+            <button id="btn-redeem" onclick="openQR('REDEEM')" class="hidden btn-press w-full py-4 bg-orange-500 text-white text-lg font-bold rounded-2xl shadow-lg shadow-orange-200 flex items-center justify-center gap-2">
+                <span>🎁</span> Списать бонус
+            </button>
+        </div>
+    </div>
 
-            <div class="grid grid-cols-2 gap-3">
-                <button onclick="confirmAction('REDEEM')" class="py-4 bg-purple-600 text-white font-bold rounded-xl active:scale-95 transition-transform">
-                    🎁 Списать
+    <!-- QR Modal -->
+    <div id="qr-modal" class="hidden fixed inset-0 z-40 bg-white flex flex-col p-6 animate-fade-in">
+        <div class="flex justify-between items-center mb-10">
+            <h3 class="font-bold text-xl" id="qr-title">Сканирование</h3>
+            <button onclick="closeQR()" class="p-2 bg-gray-100 rounded-full text-gray-500">✕</button>
+        </div>
+        <div class="flex-1 flex flex-col items-center">
+            <div class="bg-white p-5 rounded-3xl shadow-2xl border border-gray-100 mb-8 relative">
+                <div id="qrcode"></div>
+                <div id="qr-expired" class="hidden absolute inset-0 bg-white/95 flex items-center justify-center font-bold text-red-500 rounded-3xl">Обновите код</div>
+            </div>
+            <p class="text-center text-gray-400 text-sm mb-2">Покажите этот код бариста</p>
+            <div class="w-32 h-1 bg-gray-100 rounded-full overflow-hidden">
+                <div id="timer-bar" class="h-full bg-blue-500 transition-all duration-1000 ease-linear" style="width: 100%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Overlay -->
+    <div id="success-overlay" class="hidden fixed inset-0 z-50 bg-white/95 flex flex-col items-center justify-center text-center p-8 backdrop-blur-sm">
+        <div class="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-6 animate-bounce">
+            <svg class="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+        </div>
+        <h2 id="success-title" class="text-2xl font-black text-gray-900 mb-2">Готово!</h2>
+        <p id="success-message" class="text-gray-600 mb-8 text-lg">Операция выполнена</p>
+        <button onclick="hideSuccess()" class="w-full py-4 bg-gray-900 text-white font-bold rounded-2xl btn-press">Отлично</button>
+    </div>
+
+    <!-- === ADMIN VIEW === -->
+    <div id="admin-view" class="hidden flex-col h-full items-center justify-center p-6 text-center max-w-md mx-auto">
+        <div class="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mb-6">
+            <svg class="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+        </div>
+        <h2 class="text-3xl font-black mb-2">Сканер</h2>
+        <p class="text-gray-500 mb-8">Режим администратора</p>
+        <button onclick="scanQR()" class="w-full py-4 bg-blue-600 text-white font-bold rounded-2xl shadow-xl shadow-blue-200 btn-press flex items-center justify-center gap-2">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            Сканировать QR
+        </button>
+        <div id="scan-status" class="mt-6 text-sm font-medium text-gray-400">Ожидание...</div>
+    </div>
+
+    <!-- Admin Decision Modal -->
+    <div id="admin-decision-modal" class="hidden fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-slide-up">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">🤔</div>
+                <h3 id="decision-title" class="text-xl font-bold text-gray-900">Выбор действия</h3>
+                <p id="decision-text" class="text-gray-600 mt-2 text-sm leading-relaxed">У клиента есть бонусы.</p>
+            </div>
+            <div class="space-y-3">
+                <button id="btn-decision-earn" class="w-full py-3.5 bg-gray-100 text-gray-900 font-bold rounded-xl active:bg-gray-200 transition-colors">
+                    Накопить баллы
                 </button>
-                <button onclick="confirmAction('EARN')" class="py-4 bg-blue-600 text-white font-bold rounded-xl active:scale-95 transition-transform">
-                    ➕ Накопить
+                <button id="btn-decision-redeem" class="w-full py-3.5 bg-orange-500 text-white font-bold rounded-xl shadow-lg shadow-orange-200 active:bg-orange-600 transition-colors">
+                    Списать бонус
                 </button>
             </div>
+            <button onclick="closeDecisionModal()" class="mt-4 text-gray-400 text-sm w-full py-2">Отмена</button>
         </div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
+        tg.enableClosingConfirmation();
 
-        // ⚠️ КОНФИГУРАЦИЯ
+        // CONFIG
         const API_BASE = 'https://n8n.inflio.xyz/webhook'; 
 
         const currentUser = tg.initDataUnsafe?.user;
         let currentSessionId = null;
-        let pendingDecisionSessionId = null;
         let pollInterval = null;
         let timerInterval = null;
-        
-        // Хранилище состояния (чтобы не терять данные между апдейтами)
-        let lastUserState = {};
 
         // === INITIALIZATION ===
         async function init() {
@@ -167,79 +147,72 @@
             }
 
             try {
-                // Запрашиваем полные данные
+                // Fetch User Data + Status logic handled by DB/n8n
                 const res = await fetch(`${API_BASE}/init-app?id=${currentUser.id}&first_name=${currentUser.first_name}`);
                 const data = await res.json();
-                lastUserState = Array.isArray(data) ? data[0] : data;
+                const user = Array.isArray(data) ? data[0] : data;
                 
                 document.getElementById('loader').classList.add('hidden');
 
-                if (lastUserState.is_admin) {
+                if (user.is_admin) {
                     showAdminUI();
                 } else {
-                    showClientUI(lastUserState);
+                    showClientUI(user);
                 }
             } catch (e) {
                 console.error(e);
-                tg.showAlert("Ошибка соединения с сервером");
+                alert("Ошибка сети. Попробуйте перезапустить.");
             }
         }
 
-        // === UI LOGIC: CLIENT ===
+        // === CLIENT LOGIC ===
         function showClientUI(user) {
             document.getElementById('client-view').classList.remove('hidden');
             document.getElementById('client-view').classList.add('flex');
-            updateClientState(user);
-        }
-
-        function updateClientState(user) {
-            // 1. Ранг
-            const stamps = user.total_stamps !== undefined ? user.total_stamps : (lastUserState.total_stamps || 0);
-            let rank = 'Новичок';
-            if (stamps > 10) rank = 'Любитель';
-            if (stamps > 50) rank = 'Кофеман ☕️';
-            document.getElementById('user-rank').innerText = rank;
-
-            // 2. Бонусная карта
-            const bonusCount = user.bonus_cups !== undefined ? user.bonus_cups : (lastUserState.bonus_cups || 0);
-            const bonusCard = document.getElementById('bonus-card');
             
-            if (bonusCount > 0) {
-                bonusCard.classList.remove('hidden'); 
-                document.getElementById('bonus-count').innerText = bonusCount;
-            } else {
-                bonusCard.classList.add('hidden');
-            }
-
-            // 3. Сетка штампов
-            renderStamps(user.balance !== undefined ? user.balance : (lastUserState.balance || 0));
+            // Render Stats
+            updateClientStats(user);
         }
 
-        function renderStamps(count) {
+        function updateClientStats(user) {
+            // Stamps
             const grid = document.getElementById('stamps-grid');
             grid.innerHTML = '';
             for (let i = 1; i <= 6; i++) {
-                const isActive = i <= count;
+                const isActive = i <= (user.balance || 0);
                 const el = document.createElement('div');
-                el.className = `stamp aspect-square rounded-2xl border-4 flex items-center justify-center text-xl font-bold ${isActive ? 'active' : 'empty'}`;
+                el.className = `stamp aspect-square rounded-xl border-2 flex items-center justify-center text-xl font-bold ${isActive ? 'active border-amber-600 bg-amber-500' : 'empty border-gray-200 bg-gray-50 text-gray-300'}`;
                 el.innerHTML = isActive ? '☕️' : i;
                 grid.appendChild(el);
             }
+
+            // Status logic (Simple frontend calc for immediate display, backend is source of truth)
+            const total = user.total_stamps || 0;
+            let status = 'Новичок';
+            if(total >= 10) status = 'Любитель';
+            if(total >= 30) status = 'Кофеман';
+            if(total >= 60) status = 'BOSS';
+            document.getElementById('user-status').innerText = status;
+
+            // Bonuses
+            const bonusCount = user.bonus_cups || 0;
+            if (bonusCount > 0) {
+                document.getElementById('bonus-badge').classList.remove('hidden');
+                document.getElementById('bonus-badge').classList.add('flex');
+                document.getElementById('bonus-count').innerText = bonusCount;
+                document.getElementById('btn-redeem').classList.remove('hidden');
+                document.getElementById('btn-redeem').classList.add('flex');
+            } else {
+                document.getElementById('bonus-badge').classList.add('hidden');
+                document.getElementById('btn-redeem').classList.add('hidden');
+            }
         }
 
-        // === QR LOGIC (Client) ===
-        // intent: 'EARN' (Накопить) или 'REDEEM' (Списать)
-        async function openQR(intent = 'EARN') {
+        async function openQR(intent) {
             document.getElementById('qr-modal').classList.remove('hidden');
             document.getElementById('qr-modal').classList.add('flex');
+            document.getElementById('qr-title').innerText = intent === 'REDEEM' ? 'Списание бонуса' : 'Накопление';
             
-            // Динамический UI для модалки
-            const title = intent === 'REDEEM' ? 'Списание бонуса' : 'Покажите бариста';
-            const hint = intent === 'REDEEM' ? 'Бариста спишет 1 подарочную чашку' : 'Для начисления штампа';
-            document.getElementById('qr-title').innerText = title;
-            document.getElementById('qr-hint').innerText = hint;
-
-            // Запрос с intent
             const res = await fetch(`${API_BASE}/get-qr?user_id=${currentUser.id}&intent=${intent}`);
             const data = await res.json();
             const session = Array.isArray(data) ? data[0] : data;
@@ -248,8 +221,11 @@
             document.getElementById('qrcode').innerHTML = '';
             new QRCode(document.getElementById("qrcode"), {
                 text: JSON.stringify({ sid: currentSessionId }),
-                width: 200,
-                height: 200
+                width: 220,
+                height: 220,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
             });
 
             startTimer();
@@ -263,24 +239,6 @@
             clearInterval(timerInterval);
         }
 
-        function startTimer() {
-            let timeLeft = 300;
-            const bar = document.getElementById('timer-bar');
-            const val = document.getElementById('timer-val');
-            document.getElementById('qr-expired').classList.add('hidden');
-            
-            if(timerInterval) clearInterval(timerInterval);
-            timerInterval = setInterval(() => {
-                timeLeft--;
-                val.innerText = timeLeft;
-                bar.style.width = `${(timeLeft/300)*100}%`;
-                if(timeLeft <= 0) {
-                    clearInterval(timerInterval);
-                    document.getElementById('qr-expired').classList.remove('hidden');
-                }
-            }, 1000);
-        }
-
         function startPolling() {
             if(pollInterval) clearInterval(pollInterval);
             pollInterval = setInterval(async () => {
@@ -288,39 +246,21 @@
                     const res = await fetch(`${API_BASE}/check-status?session_id=${currentSessionId}`);
                     const data = await res.json();
                     const statusData = Array.isArray(data) ? data[0] : data;
-                    
                     if (statusData.status === 'USED') {
                         closeQR();
-                        showSuccess(statusData); 
+                        // Refresh user data to show new state
+                        const userRes = await fetch(`${API_BASE}/init-app?id=${currentUser.id}`);
+                        const userData = await userRes.json();
+                        const user = Array.isArray(userData) ? userData[0] : userData;
+                        updateClientStats(user);
+                        
+                        showSuccess(
+                            statusData.balance === 0 ? "Бонус получен!" : "Успешно!", 
+                            statusData.balance === 0 ? "Вам начислен бесплатный напиток" : "Штамп добавлен"
+                        );
                     }
-                } catch(e) { console.error("Poll error", e); }
-            }, 2500);
-        }
-
-        function showSuccess(data) {
-            const overlay = document.getElementById('success-overlay');
-            const title = document.getElementById('success-title');
-            const msg = document.getElementById('success-message');
-
-            title.innerText = 'Успешно!';
-            msg.innerText = 'Данные обновлены';
-            
-            // Если пришли полные данные (V2), обновляем стейт
-            if (data.bonus_cups !== undefined) {
-                lastUserState.balance = data.balance;
-                lastUserState.bonus_cups = data.bonus_cups;
-                updateClientState(lastUserState);
-            } else {
-                // Fallback для старой логики (на всякий случай)
-                renderStamps(data.balance || data); 
-            }
-            
-            overlay.classList.remove('hidden');
-            tg.HapticFeedback.notificationOccurred('success');
-        }
-
-        function hideSuccess() {
-            document.getElementById('success-overlay').classList.add('hidden');
+                } catch(e) {}
+            }, 2000);
         }
 
         // === ADMIN LOGIC ===
@@ -330,87 +270,106 @@
         }
 
         function scanQR() {
-            tg.showScanQrPopup({ text: "Сканируйте QR клиента" }, async (qrText) => {
+            tg.showScanQrPopup({ text: "Наведите на QR клиента" }, async (qrText) => {
                 tg.closeScanQrPopup(); 
-                processScan(qrText);
+                handleScanResult(qrText);
                 return true;
             });
         }
 
-        // Логика V2 с обработкой решения администратора
-        async function processScan(qrText, forceAction = null) {
-            const statusDiv = document.getElementById('scan-status');
-            statusDiv.innerHTML = '<span class="text-blue-500">Обработка...</span>';
-            
+        async function handleScanResult(qrText, forcedAction = null) {
             try {
-                let sessionId;
-                // Если это решение админа (forceAction) - берем сохраненный ID
-                if (forceAction && pendingDecisionSessionId) {
-                    sessionId = pendingDecisionSessionId;
-                } else {
-                    const parsed = JSON.parse(qrText);
-                    if (!parsed.sid) throw new Error();
-                    sessionId = parsed.sid;
-                }
+                const parsed = JSON.parse(qrText);
+                if (!parsed.sid) throw new Error();
 
-                const body = { 
+                document.getElementById('scan-status').innerHTML = '<span class="text-blue-500 animate-pulse">Обработка...</span>';
+                
+                const payload = { 
                     admin_id: currentUser.id, 
-                    qr_session: sessionId
+                    qr_session: parsed.sid,
+                    action: forcedAction // 'EARN' or 'REDEEM' or null
                 };
-                if (forceAction) body.action = forceAction;
 
                 const res = await fetch(`${API_BASE}/scan-qr`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(body)
+                    body: JSON.stringify(payload)
                 });
                 
                 const resultRaw = await res.json();
                 const result = Array.isArray(resultRaw) ? resultRaw[0].result : resultRaw.result; 
 
-                handleScanResult(result, sessionId);
+                // 1. Успех
+                if (result.status === 'success') {
+                    closeDecisionModal();
+                    tg.showAlert(`${result.title}\n${result.message}`);
+                    document.getElementById('scan-status').innerHTML = '✅ Успешно';
+                } 
+                // 2. Требуется выбор (Конфликт)
+                else if (result.status === 'confirmation_required') {
+                    showDecisionModal(result, qrText); // Pass qrText to re-use in handlers
+                    document.getElementById('scan-status').innerHTML = '⚠️ Ожидание выбора';
+                }
+                // 3. Ошибка
+                else {
+                    tg.showAlert(`Ошибка: ${result.message}`);
+                    document.getElementById('scan-status').innerHTML = '❌ Ошибка';
+                }
 
             } catch (e) {
-                tg.showAlert("Ошибка чтения QR");
-                statusDiv.innerHTML = '❌ Ошибка';
+                tg.showAlert("Неверный QR код");
+                document.getElementById('scan-status').innerText = "Ошибка сканирования";
             }
         }
 
-        function handleScanResult(result, sessionId) {
-            const statusDiv = document.getElementById('scan-status');
+        // === DECISION MODAL ===
+        function showDecisionModal(data, qrTextRaw) {
+            const modal = document.getElementById('admin-decision-modal');
+            document.getElementById('decision-title').innerText = data.title;
+            document.getElementById('decision-text').innerText = data.message;
             
-            if (result.status === 'success') {
-                tg.showAlert(result.message);
-                statusDiv.innerHTML = '✅ Выполнено';
-                closeDecisionModal(); 
-            } 
-            else if (result.status === 'confirmation_required') {
-                // ⚠️ ВАЖНО: Обработка конфликта (Backend просит решения)
-                statusDiv.innerHTML = '⚠️ Требуется действие';
-                pendingDecisionSessionId = sessionId; 
-                
-                document.getElementById('decision-client-name').innerText = result.user_name || 'Клиент';
-                document.getElementById('decision-bonus-count').innerText = result.bonus_cups;
-                
-                // Открываем модалку выбора
-                document.getElementById('admin-decision-modal').classList.remove('hidden');
-                document.getElementById('admin-decision-modal').classList.add('flex');
-                tg.HapticFeedback.notificationOccurred('warning');
-            }
-            else {
-                tg.showAlert(`Ошибка: ${result.message}`);
-                statusDiv.innerHTML = '❌ ' + result.message;
-            }
-        }
+            // Setup buttons with closures to keep context
+            document.getElementById('btn-decision-earn').onclick = () => {
+                handleScanResult(qrTextRaw, 'EARN');
+            };
+            document.getElementById('btn-decision-redeem').onclick = () => {
+                handleScanResult(qrTextRaw, 'REDEEM');
+            };
 
-        function confirmAction(action) {
-            processScan(null, action);
+            modal.classList.remove('hidden');
+            tg.HapticFeedback.notificationOccurred('warning');
         }
 
         function closeDecisionModal() {
             document.getElementById('admin-decision-modal').classList.add('hidden');
-            document.getElementById('admin-decision-modal').classList.remove('flex');
-            pendingDecisionSessionId = null;
+        }
+
+        // === SHARED ===
+        function showSuccess(title, msg) {
+            document.getElementById('success-title').innerText = title;
+            document.getElementById('success-message').innerText = msg;
+            document.getElementById('success-overlay').classList.remove('hidden');
+            tg.HapticFeedback.notificationOccurred('success');
+        }
+
+        function hideSuccess() {
+            document.getElementById('success-overlay').classList.add('hidden');
+        }
+        
+        function startTimer() {
+            let timeLeft = 300;
+            const bar = document.getElementById('timer-bar');
+            if(timerInterval) clearInterval(timerInterval);
+            document.getElementById('qr-expired').classList.add('hidden');
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                bar.style.width = `${(timeLeft/300)*100}%`;
+                if(timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    document.getElementById('qr-expired').classList.remove('hidden');
+                }
+            }, 1000);
         }
 
         init();

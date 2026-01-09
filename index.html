@@ -3,446 +3,736 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Loyalty App</title>
+    <title>Coffee Bonus</title>
+    
+    <!-- Core Dependencies -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <!-- Icons (Lucide) for professional UI -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
     <style>
-        body { font-family: -apple-system, system-ui, sans-serif; user-select: none; }
-        .stamp { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .stamp.active { background-color: #F59E0B; color: white; border-color: #D97706; transform: scale(1.05); }
-        .stamp.empty { background-color: #F3F4F6; color: #9CA3AF; border-color: #E5E7EB; }
-        .fade-in { animation: fadeIn 0.3s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* Base styles & Typography */
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            -webkit-tap-highlight-color: transparent;
+            background-color: #F9FAFB;
+        }
+
+        /* Smooth Transitions */
+        .page {
+            transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1), opacity 0.3s ease;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            background: #F9FAFB;
+            display: none; /* Hidden by default */
+        }
+        
+        .page.active {
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+        }
+
+        /* Stamp Animation */
+        .stamp-enter { animation: stamp-pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes stamp-pop {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Modal Fade In */
+        .fade-in { animation: fadeIn 0.2s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Custom Scrollbar hide */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="bg-white min-h-screen text-gray-900 overflow-hidden relative">
+<body class="text-gray-900 h-screen overflow-hidden relative">
 
-    <!-- Loading Screen -->
-    <div id="loader" class="absolute inset-0 z-50 flex items-center justify-center bg-white">
-        <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+    <!-- === LOADER === -->
+    <div id="loader" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white">
+        <div class="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p class="text-gray-400 text-sm font-medium animate-pulse">Загрузка данных...</p>
     </div>
 
-    <!-- === STUB VIEW (Заглушка для браузера) === -->
+    <!-- === DESKTOP STUB === -->
     <div id="stub-view" class="hidden fixed inset-0 z-[60] bg-gray-50 flex flex-col items-center justify-center p-6 text-center">
-        <div class="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mb-4 text-3xl">📱</div>
-        <h2 class="text-xl font-bold mb-2">Только для Telegram</h2>
-        <p class="text-gray-500">Пожалуйста, откройте это приложение через бота.</p>
+        <i data-lucide="smartphone" class="w-16 h-16 text-gray-300 mb-4"></i>
+        <h2 class="text-xl font-bold mb-2">Откройте на телефоне</h2>
+        <p class="text-gray-500">Это приложение работает только внутри Telegram.</p>
     </div>
 
-    <!-- === CLIENT UI === -->
-    <div id="client-view" class="hidden flex-col h-full px-6 py-4">
-        <!-- Оригинальный Header + Новая кнопка бонусов -->
-        <header class="text-center mt-2 mb-8">
-            <h1 class="text-2xl font-black text-gray-800 tracking-tight">COFFEE BONUS</h1>
-            <p class="text-sm text-gray-500 font-medium mt-1">6-й кофе в подарок</p>
-            
-            <!-- [NEW] Кнопка бонусов (добавлена аккуратно) -->
-            <button onclick="showBonuses()" class="mt-3 px-4 py-2 bg-orange-50 text-orange-700 rounded-full text-sm font-bold active:scale-95 transition-transform inline-flex items-center gap-1 border border-orange-100 shadow-sm">
-                🎁 Мои бонусы
-            </button>
+    <!-- ================= VIEWS ================= -->
+
+    <!-- 1. HOME VIEW (DASHBOARD) -->
+    <div id="view-home" class="page px-5 py-6">
+        <!-- User Header -->
+        <header class="flex items-center justify-between mb-8">
+            <div>
+                <h1 class="text-2xl font-black text-gray-800 tracking-tight">COFFEE BONUS</h1>
+                <p id="user-name" class="text-gray-500 font-medium">Привет, Гость!</p>
+            </div>
+            <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+                <i data-lucide="user" class="w-5 h-5 text-gray-500"></i>
+            </div>
         </header>
 
-        <!-- Cards Grid (Оригинал) -->
-        <div id="stamps-grid" class="grid grid-cols-3 gap-4 mb-auto"></div>
-
-        <!-- Success Message Overlay (Оригинал + ID для JS) -->
-        <div id="success-overlay" class="hidden fixed inset-0 z-40 bg-white/95 flex flex-col items-center justify-center text-center p-6 animate-fade-in">
-            <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                <svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+        <!-- Stats Card -->
+        <div class="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 text-white shadow-xl shadow-gray-200 mb-6 relative overflow-hidden">
+            <div class="absolute top-0 right-0 p-4 opacity-10">
+                <i data-lucide="coffee" class="w-24 h-24"></i>
             </div>
-            <h2 id="success-title" class="text-2xl font-bold text-gray-900 mb-2">Штамп получен!</h2>
-            <p id="reward-text" class="text-gray-600 mb-8">До следующего бонуса: 1</p>
-            <button onclick="hideSuccess()" class="w-full py-4 bg-gray-900 text-white font-bold rounded-xl active:scale-95 transition-transform">Отлично</button>
-        </div>
-
-        <!-- QR Modal (Оригинал + доработки текстов через JS) -->
-        <div id="qr-modal" class="hidden fixed inset-0 z-30 bg-white flex flex-col p-6">
-            <div class="flex justify-between items-center mb-8">
-                <h3 class="font-bold text-lg" id="qr-title">Покажите бариста</h3>
-                <button onclick="closeQR()" class="p-2 bg-gray-100 rounded-full">✕</button>
-            </div>
-            <div class="flex-1 flex flex-col items-center justify-center">
-                <div class="bg-white p-4 rounded-2xl shadow-xl border border-gray-100 mb-6 relative">
-                    <div id="qrcode"></div>
-                    <div id="qr-expired" class="hidden absolute inset-0 bg-white/90 flex items-center justify-center font-bold text-red-500">Код истек</div>
-                </div>
-                <div class="w-full max-w-[200px]">
-                    <div class="h-1.5 bg-gray-100 rounded-full overflow-hidden mb-2">
-                        <div id="timer-bar" class="h-full bg-blue-500 transition-all duration-1000 ease-linear" style="width: 100%"></div>
+            
+            <div class="relative z-10">
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Ваш статус</p>
+                        <p id="user-rank" class="text-2xl font-bold text-amber-400">Новичок</p>
                     </div>
-                    <p class="text-center text-xs text-gray-400">Обновление через <span id="timer-val">300</span> сек</p>
+                    <div class="text-right">
+                        <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Баланс</p>
+                        <p class="text-2xl font-bold"><span id="user-balance">0</span><span class="text-gray-500 text-lg">/6</span></p>
+                    </div>
                 </div>
-                <!-- [NEW] Подсказка -->
-                <p id="qr-hint" class="text-center text-sm text-gray-500 mt-6 font-medium"></p>
+
+                <div class="bg-white/10 rounded-xl p-3 flex justify-between items-center backdrop-blur-sm">
+                    <span class="text-sm font-medium">До бесплатного кофе:</span>
+                    <span id="stamps-left" class="font-bold text-amber-400">6</span>
+                </div>
             </div>
         </div>
 
-        <!-- Кнопка действия (Оригинальный стиль) -->
-        <button onclick="openQR('EARN')" class="mt-4 w-full py-4 bg-blue-600 text-white text-lg font-bold rounded-xl shadow-lg shadow-blue-200 active:scale-95 transition-transform">
-            Получить штамп
+        <!-- [NEW] Bonuses Button -->
+        <button onclick="Router.go('bonuses')" class="w-full mb-6 py-4 bg-orange-50 border border-orange-100 rounded-2xl flex items-center justify-between px-6 shadow-sm active:scale-95 transition-transform group">
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 bg-orange-500 text-white rounded-full flex items-center justify-center shadow-lg shadow-orange-200">
+                    <i data-lucide="gift" class="w-5 h-5"></i>
+                </div>
+                <div class="text-left">
+                    <p class="font-bold text-gray-800">Мои бонусы</p>
+                    <p class="text-xs text-orange-600 font-medium" id="home-bonus-count">Нет доступных</p>
+                </div>
+            </div>
+            <i data-lucide="chevron-right" class="w-5 h-5 text-gray-400 group-hover:text-orange-500 transition-colors"></i>
         </button>
+
+        <!-- Menu Grid -->
+        <div class="grid grid-cols-2 gap-4">
+            <button onclick="Router.go('card')" class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform">
+                <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center">
+                    <i data-lucide="credit-card" class="w-6 h-6"></i>
+                </div>
+                <span class="font-bold text-gray-700">Моя карта</span>
+            </button>
+
+            <!-- QR Action: Now explicitly 'EARN' -->
+            <button onclick="Router.go('qr', 'EARN')" class="bg-blue-600 p-5 rounded-2xl shadow-lg shadow-blue-200 flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform text-white">
+                <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                    <i data-lucide="qr-code" class="w-6 h-6"></i>
+                </div>
+                <span class="font-bold">Показать QR</span>
+            </button>
+
+            <button onclick="Router.go('contacts')" class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform">
+                <div class="w-12 h-12 bg-green-50 text-green-600 rounded-full flex items-center justify-center">
+                    <i data-lucide="phone" class="w-6 h-6"></i>
+                </div>
+                <span class="font-bold text-gray-700">Контакты</span>
+            </button>
+
+            <button onclick="Router.go('help')" class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform">
+                <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-full flex items-center justify-center">
+                    <i data-lucide="help-circle" class="w-6 h-6"></i>
+                </div>
+                <span class="font-bold text-gray-700">Помощь</span>
+            </button>
+        </div>
+        
+        <div class="mt-8 text-center">
+            <p class="text-xs text-gray-400">Всего выпито кофе: <span id="total-stamps" class="font-bold text-gray-600">0</span></p>
+        </div>
     </div>
 
-    <!-- === [NEW] BONUSES VIEW (Экран бонусов) === -->
-    <div id="bonuses-view" class="hidden fixed inset-0 z-20 bg-white flex flex-col px-6 py-4 fade-in">
-        <header class="flex items-center mb-8 mt-2">
-            <button onclick="hideBonuses()" class="p-2 -ml-2 text-gray-400 hover:text-gray-800 transition-colors">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+    <!-- [NEW] 2.1 BONUSES VIEW -->
+    <div id="view-bonuses" class="page px-6 py-6 flex flex-col">
+        <div class="flex items-center mb-8">
+            <button onclick="Router.back()" class="p-2 -ml-2 text-gray-400 hover:text-gray-900 active:scale-90 transition-transform">
+                <i data-lucide="arrow-left" class="w-6 h-6"></i>
             </button>
             <h2 class="text-xl font-bold ml-2">Мои достижения</h2>
-        </header>
+        </div>
 
         <div class="flex-1 flex flex-col items-center">
-            <!-- Rank Card -->
-            <div class="w-full bg-gradient-to-br from-gray-900 to-gray-800 text-white rounded-2xl p-6 shadow-xl mb-6 relative overflow-hidden">
-                <div class="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16"></div>
-                <p class="text-gray-400 text-sm mb-1">Ваш статус</p>
-                <h3 id="user-rank" class="text-3xl font-black mb-4">Новичок</h3>
-                <div class="flex justify-between items-end">
-                    <div>
-                        <span id="total-stamps-display" class="text-2xl font-bold">0</span>
-                        <span class="text-gray-400 text-sm">всего чашек</span>
-                    </div>
-                    <div class="text-4xl">☕️</div>
+            <!-- Rank Card Mini -->
+            <div class="w-full bg-gray-900 text-white rounded-2xl p-6 shadow-xl mb-6 flex justify-between items-center">
+                <div>
+                    <p class="text-gray-400 text-xs mb-1">Ваш статус</p>
+                    <h3 id="bonus-rank" class="text-2xl font-bold text-amber-400">Новичок</h3>
                 </div>
+                <div class="text-4xl">🏆</div>
             </div>
 
-            <!-- Available Bonuses -->
-            <div class="w-full bg-orange-50 border border-orange-100 rounded-2xl p-6 text-center mb-auto mt-6">
+            <!-- Available Bonuses Big -->
+            <div class="w-full bg-orange-50 border border-orange-100 rounded-3xl p-8 text-center mb-auto flex flex-col items-center justify-center">
+                <div class="w-20 h-20 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center mb-4">
+                    <i data-lucide="gift" class="w-10 h-10"></i>
+                </div>
                 <p class="text-orange-800 font-medium mb-2">Доступные бесплатные напитки</p>
-                <div class="text-5xl font-black text-orange-600 mb-2" id="bonus-cups-display">0</div>
-                <p class="text-xs text-orange-400">Покажите QR код бариста для списания</p>
+                <div class="text-6xl font-black text-orange-600 mb-4" id="bonus-cups-display">0</div>
+                <p class="text-xs text-orange-400 max-w-[200px]">Покажите QR код списания бариста, чтобы получить напиток</p>
             </div>
 
             <!-- Use Bonus Button -->
-            <button id="btn-use-bonus" onclick="openQR('REDEEM')" class="w-full py-4 bg-orange-500 text-white text-lg font-bold rounded-xl shadow-lg shadow-orange-200 active:scale-95 transition-transform disabled:opacity-50 disabled:scale-100">
+            <button id="btn-use-bonus" onclick="Router.go('qr', 'REDEEM')" class="w-full py-4 bg-orange-500 text-white text-lg font-bold rounded-xl shadow-lg shadow-orange-200 active:scale-95 transition-transform disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-2">
+                <i data-lucide="qr-code" class="w-5 h-5"></i>
                 Списать бонус
             </button>
         </div>
     </div>
 
-    <!-- === ADMIN UI (Оригинал) === -->
-    <div id="admin-view" class="hidden flex-col h-full items-center justify-center p-6 text-center">
-        <div class="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mb-6">
-            <svg class="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+    <!-- 2. MY CARD VIEW (Existing) -->
+    <div id="view-card" class="page px-6 py-6 flex flex-col">
+        <div class="flex items-center mb-8">
+            <button onclick="Router.back()" class="p-2 -ml-2 text-gray-400 hover:text-gray-900 active:scale-90 transition-transform">
+                <i data-lucide="arrow-left" class="w-6 h-6"></i>
+            </button>
+            <h2 class="text-xl font-bold ml-2">Бонусная карта</h2>
+        </div>
+
+        <div class="bg-white rounded-3xl p-6 shadow-xl shadow-gray-100 border border-gray-100 flex-1 flex flex-col items-center">
+            <div class="text-center mb-8">
+                <h3 class="text-lg font-bold text-gray-800">Каждая 6-я чашка — в подарок!</h3>
+                <p class="text-gray-400 text-sm mt-1">Сканируйте QR-код при каждой покупке</p>
+            </div>
+
+            <div id="stamps-container" class="grid grid-cols-2 gap-6 w-full max-w-[240px] mb-auto">
+                <!-- Stamps injected by JS -->
+            </div>
+            
+            <button onclick="Router.go('qr', 'EARN')" class="w-full py-4 mt-8 bg-gray-900 text-white font-bold rounded-xl active:scale-95 transition-transform shadow-lg">
+                Сканировать сейчас
+            </button>
+        </div>
+    </div>
+
+    <!-- 3. QR CODE VIEW -->
+    <div id="view-qr" class="page px-6 py-6 flex flex-col bg-gray-900 text-white">
+        <div class="flex items-center mb-6">
+            <button onclick="Router.back()" class="p-2 -ml-2 text-gray-400 hover:text-white active:scale-90 transition-transform">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+            <h2 class="text-xl font-bold ml-2" id="qr-view-title">Покажите бариста</h2>
+        </div>
+
+        <div class="flex-1 flex flex-col items-center justify-center">
+            <!-- Dynamic Hint -->
+            <div id="qr-view-hint" class="mb-6 px-4 py-2 bg-white/10 rounded-lg text-sm font-medium text-center backdrop-blur-md">
+                Для начисления штампа
+            </div>
+
+            <div class="bg-white p-5 rounded-3xl shadow-2xl mb-8 relative">
+                <div id="qrcode"></div>
+                <!-- Expired Overlay -->
+                <div id="qr-expired" class="hidden absolute inset-0 bg-white/95 flex flex-col items-center justify-center rounded-3xl text-center p-4">
+                    <i data-lucide="refresh-cw" class="w-8 h-8 text-gray-400 mb-2"></i>
+                    <p class="text-gray-900 font-bold mb-2">Код истек</p>
+                    <button onclick="QRManager.generate()" class="text-blue-600 text-sm font-bold">Обновить</button>
+                </div>
+            </div>
+
+            <p class="text-gray-400 text-sm mb-4">Код обновляется автоматически</p>
+            
+            <!-- Timer Bar -->
+            <div class="w-full max-w-[200px] h-1 bg-gray-800 rounded-full overflow-hidden">
+                <div id="timer-bar" class="h-full bg-blue-500 transition-all duration-1000 ease-linear" style="width: 100%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. SUCCESS VIEW -->
+    <div id="view-success" class="page px-6 py-6 flex flex-col items-center justify-center bg-green-50">
+        <div class="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-6 stamp-enter">
+            <i data-lucide="check" class="w-12 h-12 text-green-600"></i>
+        </div>
+        <h2 id="success-title" class="text-2xl font-black text-gray-900 mb-2">Отлично!</h2>
+        <p id="success-message" class="text-gray-600 text-center mb-12">Штамп успешно добавлен на вашу карту.</p>
+        
+        <div class="w-full space-y-3">
+            <button onclick="Router.go('home')" class="w-full py-4 bg-white text-gray-900 font-bold rounded-xl border border-green-200 active:scale-95 transition-transform">
+                В главное меню
+            </button>
+        </div>
+    </div>
+
+    <!-- 5. CONTACTS -->
+    <div id="view-contacts" class="page px-6 py-6">
+        <div class="flex items-center mb-8">
+            <button onclick="Router.back()" class="p-2 -ml-2 text-gray-400 hover:text-gray-900"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
+            <h2 class="text-xl font-bold ml-2">Контакты</h2>
+        </div>
+        <div class="space-y-4">
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
+                <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center"><i data-lucide="map-pin" class="w-5 h-5"></i></div>
+                <div><p class="text-sm text-gray-400">Адрес</p><p class="font-bold">ул. Ленина, 10</p></div>
+            </div>
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
+                <div class="w-10 h-10 bg-green-50 text-green-600 rounded-full flex items-center justify-center"><i data-lucide="phone" class="w-5 h-5"></i></div>
+                <div><p class="text-sm text-gray-400">Телефон</p><p class="font-bold">+7 (999) 000-00-00</p></div>
+            </div>
+            <a href="https://t.me/support" class="block bg-blue-600 text-white p-4 rounded-xl text-center font-bold mt-8">Написать в поддержку</a>
+        </div>
+    </div>
+
+    <!-- 6. HELP -->
+    <div id="view-help" class="page px-6 py-6">
+        <div class="flex items-center mb-8">
+            <button onclick="Router.back()" class="p-2 -ml-2 text-gray-400 hover:text-gray-900"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
+            <h2 class="text-xl font-bold ml-2">Как это работает?</h2>
+        </div>
+        <div class="prose text-gray-600">
+            <ul class="space-y-4">
+                <li class="flex gap-3"><span class="font-bold text-gray-900">1.</span> Приходите к нам за кофе.</li>
+                <li class="flex gap-3"><span class="font-bold text-gray-900">2.</span> Нажмите "Показать QR" в приложении.</li>
+                <li class="flex gap-3"><span class="font-bold text-gray-900">3.</span> Покажите код бариста.</li>
+                <li class="flex gap-3"><span class="font-bold text-gray-900">4.</span> Получите штамп. 6-й кофе — бесплатно!</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- === ADMIN VIEW === -->
+    <div id="view-admin" class="page px-6 py-6 flex flex-col items-center justify-center text-center">
+        <div class="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mb-6 animate-pulse">
+            <i data-lucide="scan-line" class="w-10 h-10 text-blue-600"></i>
         </div>
         <h2 class="text-2xl font-bold mb-2">Режим Сканера</h2>
         <p class="text-gray-500 mb-8">Вы вошли как администратор</p>
-        <button onclick="scanQR()" class="w-full max-w-xs py-4 bg-blue-600 text-white font-bold rounded-xl shadow-lg active:scale-95 transition-transform">
-            📷 Сканировать QR
+        <button onclick="AdminManager.scan()" class="w-full max-w-xs py-4 bg-blue-600 text-white font-bold rounded-xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2">
+            <i data-lucide="camera" class="w-5 h-5"></i> Сканировать QR
         </button>
-        <div id="scan-status" class="mt-4 text-sm font-medium h-6"></div>
+        <div id="scan-status" class="mt-4 h-6 text-sm font-medium"></div>
     </div>
 
-    <!-- === [NEW] ADMIN CONFLICT MODAL (Для разрешения споров) === -->
-    <div id="admin-conflict-modal" class="hidden fixed inset-0 z-[70] bg-black/50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl animate-fade-in">
+    <!-- === ADMIN CONFLICT MODAL === -->
+    <div id="admin-conflict-modal" class="hidden fixed inset-0 z-[70] bg-black/50 flex items-center justify-center p-4 fade-in">
+        <div class="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl">
             <div class="text-center mb-6">
-                <div class="w-16 h-16 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">🤔</div>
+                <div class="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i data-lucide="alert-circle" class="w-8 h-8"></i>
+                </div>
                 <h3 class="text-xl font-bold text-gray-900">Выбор действия</h3>
-                <p class="text-sm text-gray-500 mt-2">Клиент: <span id="conflict-username" class="font-bold">...</span></p>
-                <p class="text-gray-600 mt-2">У клиента есть бонусы (<span id="conflict-bonus-count" class="font-bold"></span> шт).<br>Что сделать?</p>
+                <p class="text-sm text-gray-500 mt-2">Клиент: <span id="conflict-username" class="font-bold text-gray-900">...</span></p>
+                <p class="text-gray-600 mt-2 bg-amber-50 p-2 rounded-lg text-sm">У клиента есть бонусы (<span id="conflict-bonus-count" class="font-bold"></span> шт).<br>Что сделать?</p>
             </div>
             <div class="flex flex-col gap-3">
-                <button onclick="resolveConflict('EARN')" class="w-full py-3 bg-gray-100 text-gray-800 font-bold rounded-xl active:scale-95 transition-transform">
-                    ➕ Накопить баллы
+                <button onclick="AdminManager.resolve('EARN')" class="w-full py-3 bg-gray-100 text-gray-800 font-bold rounded-xl active:scale-95 transition-transform flex items-center justify-center gap-2">
+                    <i data-lucide="plus" class="w-4 h-4"></i> Только накопить
                 </button>
-                <button onclick="resolveConflict('REDEEM')" class="w-full py-3 bg-orange-500 text-white font-bold rounded-xl shadow-lg shadow-orange-200 active:scale-95 transition-transform">
-                    🎁 Списать бонус
+                <button onclick="AdminManager.resolve('REDEEM')" class="w-full py-3 bg-orange-500 text-white font-bold rounded-xl shadow-lg shadow-orange-200 active:scale-95 transition-transform flex items-center justify-center gap-2">
+                    <i data-lucide="gift" class="w-4 h-4"></i> Списать бонус
                 </button>
             </div>
-            <button onclick="closeConflictModal()" class="mt-4 text-sm text-gray-400 w-full text-center">Отмена</button>
+            <button onclick="AdminManager.closeConflict()" class="mt-4 text-sm text-gray-400 w-full text-center hover:text-gray-600">Отмена</button>
         </div>
     </div>
 
     <script>
+        // --- CONFIG ---
+        const API_BASE = 'https://n8n.inflio.xyz/webhook';
         const tg = window.Telegram.WebApp;
-        tg.expand();
+        
+        // --- INIT ICONS ---
+        lucide.createIcons();
 
-        // ⚠️ КОНФИГУРАЦИЯ: Вставьте ваш URL
-        const API_BASE = 'https://n8n.inflio.xyz/webhook'; 
+        // --- STATE ---
+        const State = {
+            user: null,
+            balance: 0,
+            bonusCups: 0, // [NEW]
+            totalStamps: 0,
+            rank: 'Новичок',
+            currentSessionId: null,
+            qrIntent: 'EARN' // 'EARN' or 'REDEEM'
+        };
 
-        // 🛡 ЗАЩИТА: Получаем пользователя
-        const currentUser = tg.initDataUnsafe?.user; 
+        // --- ROUTER ---
+        const Router = {
+            history: [],
+            
+            go(viewId, param = null) {
+                document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+                
+                const target = document.getElementById(`view-${viewId}`);
+                if(target) {
+                    target.classList.add('active');
+                    this.history.push(viewId);
+                    
+                    // Logic per View
+                    if(viewId === 'qr') {
+                        State.qrIntent = param || 'EARN'; // Set intent
+                        QRManager.generate();
+                        UIManager.updateQRView(); // Visual update
+                    }
+                    if(viewId === 'home') UIManager.updateHome();
+                    if(viewId === 'card') UIManager.renderCard();
+                    if(viewId === 'bonuses') UIManager.updateBonuses(); // [NEW]
+                }
+                
+                // Back Button
+                if(this.history.length > 1) tg.BackButton.show();
+                else tg.BackButton.hide();
+                
+                // Refresh Icons
+                setTimeout(() => lucide.createIcons(), 50);
+            },
 
-        // State
-        let userData = { balance: 0, bonus_cups: 0, total_stamps: 0 }; // Local state with defaults
-        let currentSessionId = null;
-        let conflictSessionId = null; 
-        let pollInterval = null;
-        let timerInterval = null;
+            back() {
+                if(this.history.length <= 1) return;
+                this.history.pop();
+                const prev = this.history[this.history.length - 1];
+                
+                document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+                document.getElementById(`view-${prev}`).classList.add('active');
+                
+                if(prev !== 'qr') QRManager.stop();
+                if(prev === 'home') UIManager.updateHome();
+                
+                if(this.history.length <= 1) tg.BackButton.hide();
+            }
+        };
 
-        async function init() {
-            if (!currentUser || !currentUser.id) {
+        // --- API ---
+        const API = {
+            async initUser() {
+                const u = tg.initDataUnsafe.user;
+                const res = await fetch(`${API_BASE}/init-app?id=${u.id}&first_name=${u.first_name}`);
+                return await res.json();
+            },
+            
+            // [UPDATED] Send intent
+            async getQR(userId, intent) {
+                const res = await fetch(`${API_BASE}/get-qr?user_id=${userId}&intent=${intent}`);
+                return await res.json();
+            },
+            
+            async checkStatus(sessionId) {
+                const res = await fetch(`${API_BASE}/check-status?session_id=${sessionId}`);
+                return await res.json();
+            },
+
+            // [UPDATED] Supports forced action
+            async scanQR(adminId, qrSession, action = null) {
+                const body = { admin_id: adminId, qr_session: qrSession };
+                if (action) body.action = action;
+
+                const res = await fetch(`${API_BASE}/scan-qr`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(body)
+                });
+                return await res.json();
+            }
+        };
+
+        // --- UI MANAGER ---
+        const UIManager = {
+            updateHome() {
+                document.getElementById('user-name').innerText = `Привет, ${State.user.first_name || 'Друг'}!`;
+                document.getElementById('user-balance').innerText = State.balance;
+                document.getElementById('stamps-left').innerText = 6 - State.balance;
+                document.getElementById('total-stamps').innerText = State.totalStamps;
+                
+                // Bonus Button State
+                const bonusText = document.getElementById('home-bonus-count');
+                if (State.bonusCups > 0) {
+                    bonusText.innerText = `Доступно: ${State.bonusCups} шт.`;
+                    bonusText.classList.remove('text-gray-400');
+                    bonusText.classList.add('text-orange-600', 'font-bold');
+                } else {
+                    bonusText.innerText = "Нет доступных";
+                    bonusText.classList.remove('text-orange-600', 'font-bold');
+                    bonusText.classList.add('text-gray-400');
+                }
+
+                // Rank
+                let rank = "Новичок";
+                if(State.totalStamps > 10) rank = "Любитель";
+                if(State.totalStamps > 30) rank = "Кофеман";
+                if(State.totalStamps > 50) rank = "Бариста";
+                document.getElementById('user-rank').innerText = rank;
+                State.rank = rank;
+            },
+
+            updateBonuses() {
+                document.getElementById('bonus-rank').innerText = State.rank;
+                document.getElementById('bonus-cups-display').innerText = State.bonusCups;
+                
+                const btn = document.getElementById('btn-use-bonus');
+                if (State.bonusCups > 0) {
+                    btn.disabled = false;
+                    btn.classList.remove('grayscale');
+                    btn.innerHTML = '<i data-lucide="qr-code" class="w-5 h-5"></i> Списать бонус';
+                } else {
+                    btn.disabled = true;
+                    btn.classList.add('grayscale');
+                    btn.innerText = "Нет бонусов для списания";
+                }
+            },
+
+            updateQRView() {
+                const title = document.getElementById('qr-view-title');
+                const hint = document.getElementById('qr-view-hint');
+                const bar = document.getElementById('timer-bar');
+
+                if (State.qrIntent === 'REDEEM') {
+                    title.innerText = "Списание бонуса";
+                    hint.innerText = "Списание бесплатного напитка";
+                    hint.className = "mb-6 px-4 py-2 bg-orange-500/20 text-orange-200 rounded-lg text-sm font-medium text-center backdrop-blur-md border border-orange-500/30";
+                    bar.className = "h-full bg-orange-500 transition-all duration-1000 ease-linear";
+                } else {
+                    title.innerText = "Получение штампа";
+                    hint.innerText = "Для начисления штампа";
+                    hint.className = "mb-6 px-4 py-2 bg-white/10 text-white rounded-lg text-sm font-medium text-center backdrop-blur-md";
+                    bar.className = "h-full bg-blue-500 transition-all duration-1000 ease-linear";
+                }
+            },
+
+            renderCard() {
+                const grid = document.getElementById('stamps-container');
+                grid.innerHTML = '';
+                for (let i = 1; i <= 6; i++) {
+                    const isActive = i <= State.balance;
+                    const el = document.createElement('div');
+                    const baseClass = "aspect-square rounded-full flex items-center justify-center text-xl font-bold border-4 transition-all duration-300";
+                    const activeClass = "bg-amber-100 border-amber-500 text-amber-600 scale-105 shadow-md";
+                    const emptyClass = "bg-gray-50 border-gray-200 text-gray-300";
+                    el.className = `${baseClass} ${isActive ? activeClass : emptyClass}`;
+                    if (isActive) el.innerHTML = '<i data-lucide="coffee" class="w-8 h-8"></i>';
+                    else el.innerText = i;
+                    grid.appendChild(el);
+                }
+                lucide.createIcons();
+            }
+        };
+
+        // --- QR LOGIC ---
+        const QRManager = {
+            pollInterval: null,
+            timerInterval: null,
+            
+            async generate() {
+                document.getElementById('qr-expired').classList.add('hidden');
+                document.getElementById('qrcode').innerHTML = '';
+                
+                // Loader
+                const loading = document.createElement('div');
+                loading.className = "w-[200px] h-[200px] flex items-center justify-center";
+                loading.innerHTML = '<div class="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>';
+                document.getElementById('qrcode').appendChild(loading);
+
+                try {
+                    // [UPDATED] Pass intent
+                    const data = await API.getQR(State.user.id, State.qrIntent);
+                    const session = Array.isArray(data) ? data[0] : data;
+                    State.currentSessionId = session.session_id;
+
+                    document.getElementById('qrcode').innerHTML = '';
+                    new QRCode(document.getElementById("qrcode"), {
+                        text: JSON.stringify({ sid: session.session_id }),
+                        width: 200,
+                        height: 200,
+                        colorDark : "#1F2937",
+                        colorLight : "#ffffff",
+                        correctLevel : QRCode.CorrectLevel.H
+                    });
+
+                    this.startTimer();
+                    this.startPolling();
+                } catch (e) {
+                    console.error(e);
+                    document.getElementById('qrcode').innerText = "Ошибка сети";
+                }
+            },
+
+            startTimer() {
+                let timeLeft = 300;
+                const bar = document.getElementById('timer-bar');
+                if(this.timerInterval) clearInterval(this.timerInterval);
+                
+                this.timerInterval = setInterval(() => {
+                    timeLeft--;
+                    bar.style.width = `${(timeLeft/300)*100}%`;
+                    if(timeLeft <= 0) {
+                        this.stop();
+                        document.getElementById('qr-expired').classList.remove('hidden');
+                    }
+                }, 1000);
+            },
+
+            startPolling() {
+                if(this.pollInterval) clearInterval(this.pollInterval);
+                this.pollInterval = setInterval(async () => {
+                    try {
+                        const data = await API.checkStatus(State.currentSessionId);
+                        const statusData = Array.isArray(data) ? data[0] : data;
+                        
+                        if (statusData.status === 'USED') {
+                            this.stop();
+                            // Update State
+                            State.balance = statusData.balance || 0;
+                            State.bonusCups = statusData.bonus_cups || 0;
+                            State.totalStamps = (State.totalStamps || 0) + 1; // Approx update
+
+                            // Smart Success Message
+                            const title = document.getElementById('success-title');
+                            const msg = document.getElementById('success-message');
+                            
+                            if (State.qrIntent === 'REDEEM') {
+                                title.innerText = "Бонус списан!";
+                                msg.innerText = "Наслаждайтесь вашим кофе!";
+                            } else if (statusData.balance === 0 && statusData.bonus_cups > 0) {
+                                title.innerText = "🎉 Новый бонус!";
+                                msg.innerText = "Вы накопили 6 штампов! Бесплатный кофе доступен.";
+                            } else {
+                                title.innerText = "Штамп получен!";
+                                msg.innerText = `До бонуса осталось: ${6 - statusData.balance}`;
+                            }
+
+                            tg.HapticFeedback.notificationOccurred('success');
+                            Router.go('success');
+                        }
+                    } catch(e) { console.error("Poll error", e); }
+                }, 2500);
+            },
+
+            stop() {
+                clearInterval(this.pollInterval);
+                clearInterval(this.timerInterval);
+            }
+        };
+
+        // --- ADMIN MANAGER ---
+        const AdminManager = {
+            conflictSessionId: null,
+
+            scan() {
+                tg.showScanQrPopup({ text: "Сканируйте QR клиента" }, async (qrText) => {
+                    tg.closeScanQrPopup(); 
+                    
+                    const statusEl = document.getElementById('scan-status');
+                    statusEl.innerHTML = '<span class="text-blue-600 animate-pulse">Обработка...</span>';
+                    
+                    try {
+                        let parsed;
+                        try { parsed = JSON.parse(qrText); } catch(e) { throw new Error("Invalid JSON"); }
+                        if (!parsed.sid) throw new Error("No SID");
+                        
+                        const res = await API.scanQR(State.user.id, parsed.sid);
+                        const result = Array.isArray(res) ? res[0].result : res.result; 
+
+                        if (result.status === 'success') {
+                            tg.HapticFeedback.notificationOccurred('success');
+                            tg.showAlert(result.message);
+                            statusEl.innerHTML = '<span class="text-green-600 font-bold">✅ Успешно</span>';
+                        } 
+                        else if (result.status === 'confirmation_required') {
+                            // [NEW] Handle Conflict
+                            this.conflictSessionId = result.session_id;
+                            document.getElementById('conflict-username').innerText = result.user_name || 'Клиент';
+                            document.getElementById('conflict-bonus-count').innerText = result.bonus_cups;
+                            document.getElementById('admin-conflict-modal').classList.remove('hidden');
+                            
+                            tg.HapticFeedback.notificationOccurred('warning');
+                            statusEl.innerHTML = '<span class="text-amber-500 font-bold">⚠️ Требуется выбор</span>';
+                        }
+                        else {
+                            tg.HapticFeedback.notificationOccurred('error');
+                            tg.showAlert(`Ошибка: ${result.message}`);
+                            statusEl.innerHTML = '<span class="text-red-500 font-bold">❌ Ошибка</span>';
+                        }
+                    } catch (e) {
+                        tg.showAlert("Неверный QR код");
+                        statusEl.innerHTML = '<span class="text-red-500">Неверный QR</span>';
+                    }
+                    return true;
+                });
+            },
+
+            async resolve(action) {
+                this.closeConflictModal();
+                const statusEl = document.getElementById('scan-status');
+                statusEl.innerHTML = '<span class="text-blue-600 animate-pulse">Применение...</span>';
+
+                try {
+                    const res = await API.scanQR(State.user.id, this.conflictSessionId, action);
+                    const result = Array.isArray(res) ? res[0].result : res.result;
+
+                    if (result.status === 'success') {
+                        tg.showAlert(result.message);
+                        statusEl.innerHTML = '<span class="text-green-600 font-bold">✅ Успешно</span>';
+                    } else {
+                        tg.showAlert(`Ошибка: ${result.message}`);
+                        statusEl.innerHTML = '<span class="text-red-500">Ошибка</span>';
+                    }
+                } catch (e) {
+                    tg.showAlert("Ошибка сети");
+                }
+            },
+
+            closeConflictModal() { // Renamed from closeConflict
+                 this.closeConflict();
+            },
+            closeConflict() {
+                document.getElementById('admin-conflict-modal').classList.add('hidden');
+                this.conflictSessionId = null;
+            }
+        };
+
+        // --- INIT ---
+        async function initApp() {
+            tg.expand();
+            tg.BackButton.onClick(() => Router.back());
+
+            const u = tg.initDataUnsafe?.user;
+            
+            if (!u || !u.id) {
                 document.getElementById('loader').classList.add('hidden');
                 document.getElementById('stub-view').classList.remove('hidden');
                 return;
             }
 
             try {
-                const res = await fetch(`${API_BASE}/init-app?id=${currentUser.id}&first_name=${currentUser.first_name}`);
-                const data = await res.json();
-                const user = Array.isArray(data) ? data[0] : data;
+                const data = await API.initUser();
+                const userData = Array.isArray(data) ? data[0] : data;
                 
-                // Save loaded user data to state
-                userData = user;
+                // Hydrate State
+                State.user = u;
+                State.balance = userData.balance || 0;
+                State.bonusCups = userData.bonus_cups || 0; // [NEW]
+                State.totalStamps = userData.total_stamps || 0;
                 
                 document.getElementById('loader').classList.add('hidden');
-
+                
                 if (userData.is_admin) {
-                    showAdminUI();
+                    Router.go('admin');
                 } else {
-                    showClientUI(userData.balance);
+                    Router.go('home');
                 }
             } catch (e) {
                 console.error(e);
-                alert("Ошибка соединения с сервером");
+                alert("Ошибка загрузки. Проверьте интернет.");
             }
         }
 
-        function showClientUI(balance) {
-            document.getElementById('client-view').classList.remove('hidden');
-            document.getElementById('client-view').classList.add('flex');
-            renderStamps(userData.balance); // Use state
-        }
-
-        function renderStamps(count) {
-            // Default to 0 if undefined
-            const safeCount = count || 0;
-            const grid = document.getElementById('stamps-grid');
-            grid.innerHTML = '';
-            for (let i = 1; i <= 6; i++) {
-                const isActive = i <= safeCount;
-                const el = document.createElement('div');
-                el.className = `stamp aspect-square rounded-2xl border-4 flex items-center justify-center text-xl font-bold ${isActive ? 'active' : 'empty'}`;
-                el.innerHTML = isActive ? '☕️' : i;
-                grid.appendChild(el);
-            }
-        }
-
-        // === [NEW] LOGIC FOR BONUSES ===
-        function showBonuses() {
-            document.getElementById('client-view').classList.add('hidden');
-            document.getElementById('bonuses-view').classList.remove('hidden');
-            
-            // Render Bonus Data
-            document.getElementById('bonus-cups-display').innerText = userData.bonus_cups || 0;
-            document.getElementById('total-stamps-display').innerText = userData.total_stamps || 0;
-            
-            // Calculate Rank
-            let rank = "Новичок";
-            const total = userData.total_stamps || 0;
-            if (total > 10) rank = "Любитель";
-            if (total > 30) rank = "Кофеман";
-            if (total > 50) rank = "Бариста";
-            document.getElementById('user-rank').innerText = rank;
-
-            // Enable/Disable Button
-            const btn = document.getElementById('btn-use-bonus');
-            if(userData.bonus_cups > 0) {
-                btn.disabled = false;
-                btn.innerText = "Списать бонус";
-            } else {
-                btn.disabled = true;
-                btn.innerText = "Нет бонусов";
-            }
-        }
-
-        function hideBonuses() {
-            document.getElementById('bonuses-view').classList.add('hidden');
-            document.getElementById('client-view').classList.remove('hidden');
-        }
-
-        // === UPDATED QR LOGIC ===
-        async function openQR(intent = 'EARN') {
-            document.getElementById('qr-modal').classList.remove('hidden');
-            document.getElementById('qr-modal').classList.add('flex');
-            
-            // UI Tweaks based on intent
-            const title = document.getElementById('qr-title');
-            const hint = document.getElementById('qr-hint');
-            const bar = document.getElementById('timer-bar');
-
-            if (intent === 'REDEEM') {
-                title.innerText = "Списание бонуса";
-                hint.innerText = "Администратор отсканирует код и выдаст вам бесплатный напиток";
-                bar.className = "h-full bg-orange-500 transition-all duration-1000 ease-linear";
-            } else {
-                title.innerText = "Получение штампа";
-                hint.innerText = "Покажите этот код для начисления штампа";
-                bar.className = "h-full bg-blue-500 transition-all duration-1000 ease-linear";
-            }
-            
-            const res = await fetch(`${API_BASE}/get-qr?user_id=${currentUser.id}&intent=${intent}`);
-            const data = await res.json();
-            const session = Array.isArray(data) ? data[0] : data;
-            currentSessionId = session.session_id;
-
-            document.getElementById('qrcode').innerHTML = '';
-            new QRCode(document.getElementById("qrcode"), {
-                text: JSON.stringify({ sid: currentSessionId }),
-                width: 200,
-                height: 200
-            });
-
-            startTimer();
-            startPolling();
-        }
-
-        function closeQR() {
-            document.getElementById('qr-modal').classList.add('hidden');
-            document.getElementById('qr-modal').classList.remove('flex');
-            clearInterval(pollInterval);
-            clearInterval(timerInterval);
-        }
-
-        function startTimer() {
-            let timeLeft = 300;
-            const bar = document.getElementById('timer-bar');
-            const val = document.getElementById('timer-val');
-            document.getElementById('qr-expired').classList.add('hidden');
-
-            if(timerInterval) clearInterval(timerInterval);
-            timerInterval = setInterval(() => {
-                timeLeft--;
-                val.innerText = timeLeft;
-                bar.style.width = `${(timeLeft/300)*100}%`;
-                if(timeLeft <= 0) {
-                    clearInterval(timerInterval);
-                    document.getElementById('qr-expired').classList.remove('hidden');
-                }
-            }, 1000);
-        }
-
-        function startPolling() {
-            if(pollInterval) clearInterval(pollInterval);
-            pollInterval = setInterval(async () => {
-                try {
-                    const res = await fetch(`${API_BASE}/check-status?session_id=${currentSessionId}`);
-                    const data = await res.json();
-                    const statusData = Array.isArray(data) ? data[0] : data;
-                    if (statusData.status === 'USED') {
-                        closeQR();
-                        // Update local state
-                        userData.balance = statusData.balance;
-                        userData.bonus_cups = statusData.bonus_cups;
-                        
-                        showSuccess(statusData);
-                    }
-                } catch(e) { console.error("Poll error", e); }
-            }, 2500);
-        }
-
-        function showSuccess(data) {
-            const overlay = document.getElementById('success-overlay');
-            const title = document.getElementById('success-title');
-            const text = document.getElementById('reward-text');
-            
-            renderStamps(data.balance);
-            if (!document.getElementById('bonuses-view').classList.contains('hidden')) {
-                showBonuses(); 
-            }
-
-            // Logic for messages
-            if (data.bonus_cups > (userData.bonus_cups || 0)) { // This check might be tricky if userData already updated
-                 // Simplified logic: Check balance reset
-                 if (data.balance === 0 && data.bonus_cups > 0) {
-                     title.innerText = "🎉 Новый бонус!";
-                     text.innerText = "Вы накопили 6 штампов!";
-                 }
-            }
-            
-            const left = 6 - data.balance;
-            if (data.balance === 0) text.innerText = "Вам полагается бесплатный кофе!";
-            else text.innerText = `До бонуса осталось: ${left}`;
-            
-            overlay.classList.remove('hidden');
-            tg.HapticFeedback.notificationOccurred('success');
-        }
-
-        function hideSuccess() {
-            document.getElementById('success-overlay').classList.add('hidden');
-        }
-
-        function showAdminUI() {
-            document.getElementById('admin-view').classList.remove('hidden');
-            document.getElementById('admin-view').classList.add('flex');
-        }
-
-        function scanQR() {
-            tg.showScanQrPopup({ text: "Наведите на QR клиента" }, async (qrText) => {
-                tg.closeScanQrPopup(); 
-                try {
-                    const parsed = JSON.parse(qrText);
-                    if (!parsed.sid) throw new Error();
-                    document.getElementById('scan-status').innerHTML = '<span class="text-blue-500">Обработка...</span>';
-                    const res = await fetch(`${API_BASE}/scan-qr`, {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ admin_id: currentUser.id, qr_session: parsed.sid })
-                    });
-                    const resultRaw = await res.json();
-                    const result = Array.isArray(resultRaw) ? resultRaw[0].result : resultRaw.result; 
-                    
-                    if (result.status === 'success') {
-                        tg.showAlert(result.message);
-                        document.getElementById('scan-status').innerHTML = '✅ Успешно';
-                    } 
-                    else if (result.status === 'confirmation_required') {
-                        // [NEW] Handle Conflict
-                        conflictSessionId = result.session_id; 
-                        document.getElementById('conflict-username').innerText = result.user_name || 'Клиент';
-                        document.getElementById('conflict-bonus-count').innerText = result.bonus_cups;
-                        
-                        document.getElementById('admin-conflict-modal').classList.remove('hidden');
-                        document.getElementById('scan-status').innerHTML = '⚠️ Требуется выбор';
-                    }
-                    else {
-                        tg.showAlert(`Ошибка: ${result.message}`);
-                        document.getElementById('scan-status').innerHTML = '❌ Ошибка';
-                    }
-                } catch (e) {
-                    tg.showAlert("Неверный QR код");
-                }
-                return true;
-            });
-        }
-
-        async function resolveConflict(action) {
-            closeConflictModal();
-            document.getElementById('scan-status').innerHTML = '<span class="text-blue-500">Применение...</span>';
-
-            try {
-                const res = await fetch(`${API_BASE}/scan-qr`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ 
-                        admin_id: currentUser.id, 
-                        qr_session: conflictSessionId,
-                        action: action 
-                    })
-                });
-                const resultRaw = await res.json();
-                const result = Array.isArray(resultRaw) ? resultRaw[0].result : resultRaw.result;
-
-                if (result.status === 'success') {
-                    tg.showAlert(result.message);
-                    document.getElementById('scan-status').innerHTML = '✅ Успешно';
-                } else {
-                    tg.showAlert(`Ошибка: ${result.message}`);
-                }
-            } catch (e) {
-                tg.showAlert("Ошибка выполнения действия");
-            }
-        }
-
-        function closeConflictModal() {
-            document.getElementById('admin-conflict-modal').classList.add('hidden');
-            conflictSessionId = null;
-        }
-
-        init();
+        initApp();
     </script>
 </body>
 </html>

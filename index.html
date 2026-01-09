@@ -3,554 +3,395 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Coffee Bonus</title>
-    
-    <!-- Core Dependencies -->
+    <title>Loyalty App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    
-    <!-- Icons (Lucide) for professional UI -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-
     <style>
-        /* Base styles & Typography */
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            -webkit-tap-highlight-color: transparent;
-            background-color: #F9FAFB;
-        }
-
-        /* Smooth Transitions */
-        .page {
-            transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1), opacity 0.3s ease;
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            overflow-y: auto;
-            background: #F9FAFB;
-            display: none; /* Hidden by default */
-        }
+        body { font-family: -apple-system, system-ui, sans-serif; user-select: none; }
+        .stamp { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .stamp.active { background-color: #F59E0B; color: white; border-color: #D97706; transform: scale(1.05); }
+        .stamp.empty { background-color: #F3F4F6; color: #9CA3AF; border-color: #E5E7EB; }
         
-        .page.active {
-            display: flex;
-            flex-direction: column;
-            z-index: 10;
-        }
-
-        /* Stamp Animation */
-        .stamp-enter { animation: stamp-pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        @keyframes stamp-pop {
-            0% { transform: scale(0); opacity: 0; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-
-        /* Custom Scrollbar hide */
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        /* Анимации */
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .modal-enter { animation: slideUp 0.3s ease-out forwards; }
     </style>
 </head>
-<body class="text-gray-900 h-screen overflow-hidden">
+<body class="bg-gray-50 min-h-screen text-gray-900 overflow-hidden relative">
 
-    <!-- === LOADER === -->
-    <div id="loader" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white">
-        <div class="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p class="text-gray-400 text-sm font-medium animate-pulse">Загрузка данных...</p>
+    <!-- Loading Screen -->
+    <div id="loader" class="absolute inset-0 z-50 flex items-center justify-center bg-white">
+        <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
     </div>
 
-    <!-- === DESKTOP STUB === -->
+    <!-- === STUB VIEW === -->
     <div id="stub-view" class="hidden fixed inset-0 z-[60] bg-gray-50 flex flex-col items-center justify-center p-6 text-center">
-        <i data-lucide="smartphone" class="w-16 h-16 text-gray-300 mb-4"></i>
-        <h2 class="text-xl font-bold mb-2">Откройте на телефоне</h2>
-        <p class="text-gray-500">Это приложение работает только внутри Telegram.</p>
+        <div class="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mb-4 text-3xl">📱</div>
+        <h2 class="text-xl font-bold mb-2">Только для Telegram</h2>
+        <p class="text-gray-500">Откройте приложение через бота.</p>
     </div>
 
-    <!-- ================= VIEWS ================= -->
-
-    <!-- 1. HOME VIEW (DASHBOARD) -->
-    <div id="view-home" class="page px-5 py-6">
-        <!-- User Header -->
-        <header class="flex items-center justify-between mb-8">
-            <div>
-                <h1 class="text-2xl font-black text-gray-800 tracking-tight">COFFEE BONUS</h1>
-                <p id="user-name" class="text-gray-500 font-medium">Привет, Гость!</p>
+    <!-- === CLIENT VIEW === -->
+    <div id="client-view" class="hidden flex-col h-full px-6 py-4">
+        <!-- Header & Status -->
+        <header class="mt-2 mb-6">
+            <div class="flex justify-between items-end mb-2">
+                <h1 class="text-2xl font-black text-gray-800 tracking-tight">BONUS CARD</h1>
+                <span id="user-rank" class="px-3 py-1 bg-yellow-100 text-yellow-700 text-xs font-bold rounded-full uppercase tracking-wide">Новичок</span>
             </div>
-            <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
-                <!-- Avatar Placeholder -->
-                <i data-lucide="user" class="w-5 h-5 text-gray-500"></i>
-            </div>
+            <p class="text-sm text-gray-500 font-medium">Копите штампы, получайте кофе!</p>
         </header>
 
-        <!-- Stats Card -->
-        <div class="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 text-white shadow-xl shadow-gray-200 mb-8 relative overflow-hidden">
-            <div class="absolute top-0 right-0 p-4 opacity-10">
-                <i data-lucide="coffee" class="w-24 h-24"></i>
-            </div>
-            
-            <div class="relative z-10">
-                <div class="flex justify-between items-start mb-6">
-                    <div>
-                        <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Ваш статус</p>
-                        <p id="user-rank" class="text-2xl font-bold text-amber-400">Новичок</p>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Баланс</p>
-                        <p class="text-2xl font-bold"><span id="user-balance">0</span><span class="text-gray-500 text-lg">/6</span></p>
-                    </div>
+        <!-- Bonus Info Card -->
+        <div id="bonus-card" class="bg-gradient-to-r from-gray-900 to-gray-800 rounded-2xl p-5 text-white shadow-lg mb-6 hidden">
+            <div class="flex justify-between items-center">
+                <div>
+                    <p class="text-gray-400 text-xs font-bold uppercase mb-1">Доступно бонусов</p>
+                    <p class="text-3xl font-bold"><span id="bonus-count">0</span> ☕️</p>
                 </div>
-
-                <div class="bg-white/10 rounded-xl p-3 flex justify-between items-center backdrop-blur-sm">
-                    <span class="text-sm font-medium">До бесплатного кофе:</span>
-                    <span id="stamps-left" class="font-bold text-amber-400">6</span>
-                </div>
+                <button onclick="openQR('REDEEM')" class="bg-white text-gray-900 px-4 py-2 rounded-lg text-sm font-bold shadow active:scale-95 transition-transform">
+                    Использовать
+                </button>
             </div>
         </div>
 
-        <!-- Menu Grid -->
-        <div class="grid grid-cols-2 gap-4">
-            <button onclick="Router.go('card')" class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform">
-                <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center">
-                    <i data-lucide="credit-card" class="w-6 h-6"></i>
-                </div>
-                <span class="font-bold text-gray-700">Моя карта</span>
-            </button>
-
-            <button onclick="Router.go('qr')" class="bg-blue-600 p-5 rounded-2xl shadow-lg shadow-blue-200 flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform text-white">
-                <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-                    <i data-lucide="qr-code" class="w-6 h-6"></i>
-                </div>
-                <span class="font-bold">Показать QR</span>
-            </button>
-
-            <!-- Placeholder for "My Bonuses" (History) - Can be implemented later -->
-            <button onclick="Router.go('contacts')" class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform">
-                <div class="w-12 h-12 bg-green-50 text-green-600 rounded-full flex items-center justify-center">
-                    <i data-lucide="phone" class="w-6 h-6"></i>
-                </div>
-                <span class="font-bold text-gray-700">Контакты</span>
-            </button>
-
-            <button onclick="Router.go('help')" class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform">
-                <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-full flex items-center justify-center">
-                    <i data-lucide="help-circle" class="w-6 h-6"></i>
-                </div>
-                <span class="font-bold text-gray-700">Помощь</span>
-            </button>
+        <!-- Stamps Grid -->
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-auto">
+            <p class="text-xs font-bold text-gray-400 uppercase mb-4 text-center">Ваш прогресс</p>
+            <div id="stamps-grid" class="grid grid-cols-3 gap-4"></div>
         </div>
-        
-        <div class="mt-8 text-center">
-            <p class="text-xs text-gray-400">Всего выпито кофе: <span id="total-stamps" class="font-bold text-gray-600">0</span></p>
-        </div>
+
+        <!-- Main Action -->
+        <button onclick="openQR('EARN')" class="mt-4 w-full py-4 bg-blue-600 text-white text-lg font-bold rounded-xl shadow-lg shadow-blue-200 active:scale-95 transition-transform flex items-center justify-center gap-2">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+            Получить штамп
+        </button>
     </div>
 
-    <!-- 2. MY CARD VIEW -->
-    <div id="view-card" class="page px-6 py-6 flex flex-col">
-        <div class="flex items-center mb-8">
-            <button onclick="Router.back()" class="p-2 -ml-2 text-gray-400 hover:text-gray-900 active:scale-90 transition-transform">
-                <i data-lucide="arrow-left" class="w-6 h-6"></i>
-            </button>
-            <h2 class="text-xl font-bold ml-2">Бонусная карта</h2>
+    <!-- === QR MODAL (Client) === -->
+    <div id="qr-modal" class="hidden fixed inset-0 z-30 bg-white flex flex-col p-6">
+        <div class="flex justify-between items-center mb-8">
+            <h3 class="font-bold text-lg" id="qr-title">Покажите бариста</h3>
+            <button onclick="closeQR()" class="p-2 bg-gray-100 rounded-full">✕</button>
         </div>
-
-        <div class="bg-white rounded-3xl p-6 shadow-xl shadow-gray-100 border border-gray-100 flex-1 flex flex-col items-center">
-            <div class="text-center mb-8">
-                <h3 class="text-lg font-bold text-gray-800">Каждая 6-я чашка — в подарок!</h3>
-                <p class="text-gray-400 text-sm mt-1">Сканируйте QR-код при каждой покупке</p>
-            </div>
-
-            <!-- Stamps Grid -->
-            <div id="stamps-container" class="grid grid-cols-2 gap-6 w-full max-w-[240px] mb-auto">
-                <!-- Stamps will be injected here by JS -->
-            </div>
-            
-            <button onclick="Router.go('qr')" class="w-full py-4 mt-8 bg-gray-900 text-white font-bold rounded-xl active:scale-95 transition-transform shadow-lg">
-                Сканировать сейчас
-            </button>
-        </div>
-    </div>
-
-    <!-- 3. QR CODE VIEW -->
-    <div id="view-qr" class="page px-6 py-6 flex flex-col bg-gray-900 text-white">
-        <div class="flex items-center mb-6">
-            <button onclick="Router.back()" class="p-2 -ml-2 text-gray-400 hover:text-white active:scale-90 transition-transform">
-                <i data-lucide="x" class="w-6 h-6"></i>
-            </button>
-            <h2 class="text-xl font-bold ml-2">Покажите бариста</h2>
-        </div>
-
         <div class="flex-1 flex flex-col items-center justify-center">
-            <div class="bg-white p-5 rounded-3xl shadow-2xl mb-8 relative">
+            <div class="bg-white p-4 rounded-2xl shadow-xl border border-gray-100 mb-6 relative">
                 <div id="qrcode"></div>
                 <!-- Expired Overlay -->
-                <div id="qr-expired" class="hidden absolute inset-0 bg-white/95 flex flex-col items-center justify-center rounded-3xl text-center p-4">
-                    <i data-lucide="refresh-cw" class="w-8 h-8 text-gray-400 mb-2"></i>
-                    <p class="text-gray-900 font-bold mb-2">Код истек</p>
-                    <button onclick="QRManager.generate()" class="text-blue-600 text-sm font-bold">Обновить</button>
+                <div id="qr-expired" class="hidden absolute inset-0 bg-white/90 flex items-center justify-center font-bold text-red-500">Код истек</div>
+            </div>
+            <p id="qr-hint" class="text-center font-medium text-gray-800 mb-2">Сканирование...</p>
+            <div class="w-full max-w-[200px]">
+                <div class="h-1.5 bg-gray-100 rounded-full overflow-hidden mb-2">
+                    <div id="timer-bar" class="h-full bg-blue-500 transition-all duration-1000 ease-linear" style="width: 100%"></div>
                 </div>
             </div>
-
-            <p class="text-gray-400 text-sm mb-4">Код обновляется автоматически</p>
-            
-            <!-- Timer Bar -->
-            <div class="w-full max-w-[200px] h-1 bg-gray-800 rounded-full overflow-hidden">
-                <div id="timer-bar" class="h-full bg-blue-500 transition-all duration-1000 ease-linear" style="width: 100%"></div>
-            </div>
         </div>
     </div>
 
-    <!-- 4. SUCCESS VIEW (After Scan) -->
-    <div id="view-success" class="page px-6 py-6 flex flex-col items-center justify-center bg-green-50">
-        <div class="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-6 stamp-enter">
-            <i data-lucide="check" class="w-12 h-12 text-green-600"></i>
+    <!-- === SUCCESS OVERLAY === -->
+    <div id="success-overlay" class="hidden fixed inset-0 z-40 bg-white/95 flex flex-col items-center justify-center text-center p-6 animate-fade-in">
+        <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
+            <svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
         </div>
-        <h2 class="text-2xl font-black text-gray-900 mb-2">Отлично!</h2>
-        <p class="text-gray-600 text-center mb-12">Штамп успешно добавлен на вашу карту.</p>
-        
-        <div class="w-full space-y-3">
-            <button onclick="Router.go('qr')" class="w-full py-4 bg-green-600 text-white font-bold rounded-xl active:scale-95 transition-transform shadow-lg shadow-green-200">
-                Показать новый QR
-            </button>
-            <button onclick="Router.go('home')" class="w-full py-4 bg-white text-gray-900 font-bold rounded-xl border border-green-200 active:scale-95 transition-transform">
-                В главное меню
-            </button>
-        </div>
+        <h2 id="success-title" class="text-2xl font-bold text-gray-900 mb-2">Готово!</h2>
+        <p id="success-message" class="text-gray-600 mb-8">Баланс обновлен</p>
+        <button onclick="hideSuccess()" class="w-full py-4 bg-gray-900 text-white font-bold rounded-xl active:scale-95 transition-transform">Отлично</button>
     </div>
 
-    <!-- 5. CONTACTS / HELP VIEWS (Simple Layouts) -->
-    <div id="view-contacts" class="page px-6 py-6">
-        <div class="flex items-center mb-8">
-            <button onclick="Router.back()" class="p-2 -ml-2 text-gray-400 hover:text-gray-900"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
-            <h2 class="text-xl font-bold ml-2">Контакты</h2>
-        </div>
-        <div class="space-y-4">
-            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
-                <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center"><i data-lucide="map-pin" class="w-5 h-5"></i></div>
-                <div><p class="text-sm text-gray-400">Адрес</p><p class="font-bold">ул. Ленина, 10</p></div>
-            </div>
-            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
-                <div class="w-10 h-10 bg-green-50 text-green-600 rounded-full flex items-center justify-center"><i data-lucide="phone" class="w-5 h-5"></i></div>
-                <div><p class="text-sm text-gray-400">Телефон</p><p class="font-bold">+7 (999) 000-00-00</p></div>
-            </div>
-            <a href="https://t.me/support" class="block bg-blue-600 text-white p-4 rounded-xl text-center font-bold mt-8">Написать в поддержку</a>
-        </div>
-    </div>
-
-    <div id="view-help" class="page px-6 py-6">
-        <div class="flex items-center mb-8">
-            <button onclick="Router.back()" class="p-2 -ml-2 text-gray-400 hover:text-gray-900"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
-            <h2 class="text-xl font-bold ml-2">Как это работает?</h2>
-        </div>
-        <div class="prose text-gray-600">
-            <ul class="space-y-4">
-                <li class="flex gap-3"><span class="font-bold text-gray-900">1.</span> Приходите к нам за кофе.</li>
-                <li class="flex gap-3"><span class="font-bold text-gray-900">2.</span> Нажмите "Показать QR" в приложении.</li>
-                <li class="flex gap-3"><span class="font-bold text-gray-900">3.</span> Покажите код бариста для сканирования.</li>
-                <li class="flex gap-3"><span class="font-bold text-gray-900">4.</span> Получите штамп. 6-й кофе — бесплатно!</li>
-            </ul>
-        </div>
-    </div>
-
-    <!-- === ADMIN VIEW (Scanner) === -->
-    <div id="view-admin" class="page px-6 py-6 flex flex-col items-center justify-center text-center">
-        <div class="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mb-6 animate-pulse">
-            <i data-lucide="scan-line" class="w-10 h-10 text-blue-600"></i>
+    <!-- === ADMIN VIEW === -->
+    <div id="admin-view" class="hidden flex-col h-full items-center justify-center p-6 text-center bg-gray-900 text-white">
+        <div class="w-24 h-24 bg-blue-600/20 rounded-full flex items-center justify-center mb-6">
+            <svg class="w-12 h-12 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
         </div>
         <h2 class="text-2xl font-bold mb-2">Режим Сканера</h2>
-        <p class="text-gray-500 mb-8">Вы вошли как администратор</p>
-        <button onclick="AdminManager.scan()" class="w-full max-w-xs py-4 bg-blue-600 text-white font-bold rounded-xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2">
-            <i data-lucide="camera" class="w-5 h-5"></i> Сканировать QR
+        <p class="text-gray-400 mb-8">Вы вошли как администратор</p>
+        
+        <button onclick="scanQR()" class="w-full max-w-xs py-4 bg-blue-600 text-white font-bold rounded-xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2">
+            📷 Сканировать QR
         </button>
-        <div id="scan-status" class="mt-4 h-6 text-sm font-medium"></div>
+        <div id="scan-status" class="mt-4 text-sm font-medium h-6"></div>
+    </div>
+
+    <!-- === ADMIN DECISION MODAL (Всплывающее окно выбора) === -->
+    <div id="admin-decision-modal" class="hidden fixed inset-0 z-[70] bg-black/80 flex items-end sm:items-center justify-center">
+        <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-6 modal-enter">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h3 class="text-xl font-bold text-gray-900">Выбор действия</h3>
+                    <p class="text-gray-500 text-sm mt-1">Клиент: <span id="decision-client-name" class="font-bold">...</span></p>
+                </div>
+                <button onclick="closeDecisionModal()" class="p-2 bg-gray-100 rounded-full text-gray-500">✕</button>
+            </div>
+            
+            <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
+                <p class="text-yellow-800 text-sm">У клиента есть неиспользованные бонусы (<span id="decision-bonus-count" class="font-bold">0</span>), но он предъявил карту для накопления.</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="confirmAction('REDEEM')" class="py-4 bg-purple-600 text-white font-bold rounded-xl active:scale-95 transition-transform">
+                    🎁 Списать
+                </button>
+                <button onclick="confirmAction('EARN')" class="py-4 bg-blue-600 text-white font-bold rounded-xl active:scale-95 transition-transform">
+                    ➕ Накопить
+                </button>
+            </div>
+        </div>
     </div>
 
     <script>
-        // --- CONFIG ---
-        const API_BASE = 'https://n8n.inflio.xyz/webhook';
         const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        // ⚠️ КОНФИГУРАЦИЯ: Вставьте ваш URL без Markdown!
+        const API_BASE = 'https://n8n.inflio.xyz/webhook'; 
+
+        const currentUser = tg.initDataUnsafe?.user;
+        let currentSessionId = null;
+        let pendingDecisionSessionId = null; 
+        let pollInterval = null;
+        let timerInterval = null;
         
-        // --- ICONS INIT ---
-        lucide.createIcons();
+        // Хранилище состояния пользователя для корректного обновления UI
+        let lastUserState = {};
 
-        // --- STATE MANAGEMENT ---
-        const State = {
-            user: null,
-            balance: 0,
-            totalStamps: 0,
-            rank: 'Новичок',
-            currentSessionId: null
-        };
-
-        // --- ROUTER SYSTEM ---
-        const Router = {
-            history: [],
-            
-            go(viewId) {
-                // Hide all pages
-                document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
-                
-                // Show target
-                const target = document.getElementById(`view-${viewId}`);
-                if(target) {
-                    target.classList.add('active');
-                    this.history.push(viewId);
-                    
-                    // Specific View Logic
-                    if(viewId === 'qr') QRManager.generate();
-                    if(viewId === 'home') UIManager.updateHome();
-                    if(viewId === 'card') UIManager.renderCard();
-                }
-                
-                // Native Back Button support
-                if(this.history.length > 1) tg.BackButton.show();
-                else tg.BackButton.hide();
-            },
-
-            back() {
-                if(this.history.length <= 1) return;
-                this.history.pop();
-                const prev = this.history[this.history.length - 1];
-                
-                document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
-                document.getElementById(`view-${prev}`).classList.add('active');
-                
-                // Cleanup
-                if(prev !== 'qr') QRManager.stop();
-                
-                if(this.history.length <= 1) tg.BackButton.hide();
-            }
-        };
-
-        // --- API SERVICE ---
-        const API = {
-            async initUser() {
-                const u = tg.initDataUnsafe.user;
-                // В реальном проекте отправляйте tg.initData для валидации на бэкенде
-                const res = await fetch(`${API_BASE}/init-app?id=${u.id}&first_name=${u.first_name}`);
-                return await res.json();
-            },
-            
-            async getQR(userId) {
-                const res = await fetch(`${API_BASE}/get-qr?user_id=${userId}`);
-                return await res.json();
-            },
-            
-            async checkStatus(sessionId) {
-                const res = await fetch(`${API_BASE}/check-status?session_id=${sessionId}`);
-                return await res.json();
-            },
-
-            async scanQR(adminId, qrSession) {
-                const res = await fetch(`${API_BASE}/scan-qr`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ admin_id: adminId, qr_session: qrSession })
-                });
-                return await res.json();
-            }
-        };
-
-        // --- UI MANAGER ---
-        const UIManager = {
-            updateHome() {
-                document.getElementById('user-name').innerText = `Привет, ${State.user.first_name || 'Друг'}!`;
-                document.getElementById('user-balance').innerText = State.balance;
-                document.getElementById('stamps-left').innerText = 6 - State.balance;
-                document.getElementById('total-stamps').innerText = State.totalStamps;
-                
-                // Rank Logic
-                let rank = "Новичок";
-                if(State.totalStamps > 10) rank = "Любитель";
-                if(State.totalStamps > 50) rank = "Кофейный Гуру";
-                document.getElementById('user-rank').innerText = rank;
-                State.rank = rank;
-            },
-
-            renderCard() {
-                const grid = document.getElementById('stamps-container');
-                grid.innerHTML = '';
-                
-                for (let i = 1; i <= 6; i++) {
-                    const isActive = i <= State.balance;
-                    const el = document.createElement('div');
-                    // Style logic
-                    const baseClass = "aspect-square rounded-full flex items-center justify-center text-xl font-bold border-4 transition-all duration-300";
-                    const activeClass = "bg-amber-100 border-amber-500 text-amber-600 scale-105 shadow-md";
-                    const emptyClass = "bg-gray-50 border-gray-200 text-gray-300";
-                    
-                    el.className = `${baseClass} ${isActive ? activeClass : emptyClass}`;
-                    
-                    // Icon logic
-                    if (isActive) {
-                        el.innerHTML = '<i data-lucide="coffee" class="w-8 h-8"></i>';
-                    } else {
-                        el.innerText = i;
-                    }
-                    
-                    grid.appendChild(el);
-                }
-                lucide.createIcons();
-            }
-        };
-
-        // --- QR LOGIC ---
-        const QRManager = {
-            pollInterval: null,
-            timerInterval: null,
-            
-            async generate() {
-                document.getElementById('qr-expired').classList.add('hidden');
-                document.getElementById('qrcode').innerHTML = ''; // Clear prev
-                
-                // Loading state in QR
-                const loading = document.createElement('div');
-                loading.className = "w-[200px] h-[200px] flex items-center justify-center";
-                loading.innerHTML = '<div class="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>';
-                document.getElementById('qrcode').appendChild(loading);
-
-                try {
-                    const data = await API.getQR(State.user.id);
-                    const session = Array.isArray(data) ? data[0] : data;
-                    State.currentSessionId = session.session_id;
-
-                    // Render Real QR
-                    document.getElementById('qrcode').innerHTML = '';
-                    new QRCode(document.getElementById("qrcode"), {
-                        text: JSON.stringify({ sid: session.session_id }),
-                        width: 200,
-                        height: 200,
-                        colorDark : "#1F2937",
-                        colorLight : "#ffffff",
-                        correctLevel : QRCode.CorrectLevel.H
-                    });
-
-                    this.startTimer();
-                    this.startPolling();
-                } catch (e) {
-                    console.error(e);
-                    document.getElementById('qrcode').innerText = "Ошибка сети";
-                }
-            },
-
-            startTimer() {
-                let timeLeft = 300; // 5 min
-                const bar = document.getElementById('timer-bar');
-                
-                if(this.timerInterval) clearInterval(this.timerInterval);
-                
-                this.timerInterval = setInterval(() => {
-                    timeLeft--;
-                    bar.style.width = `${(timeLeft/300)*100}%`;
-                    
-                    if(timeLeft <= 0) {
-                        this.stop();
-                        document.getElementById('qr-expired').classList.remove('hidden');
-                    }
-                }, 1000);
-            },
-
-            startPolling() {
-                if(this.pollInterval) clearInterval(this.pollInterval);
-                this.pollInterval = setInterval(async () => {
-                    try {
-                        const data = await API.checkStatus(State.currentSessionId);
-                        const statusData = Array.isArray(data) ? data[0] : data;
-                        
-                        if (statusData.status === 'USED') {
-                            this.stop();
-                            State.balance = statusData.balance || 0; // Update local state
-                            State.totalStamps++; // Optimistic update
-                            
-                            tg.HapticFeedback.notificationOccurred('success');
-                            Router.go('success');
-                        }
-                    } catch(e) { console.error("Poll error", e); }
-                }, 2500);
-            },
-
-            stop() {
-                clearInterval(this.pollInterval);
-                clearInterval(this.timerInterval);
-            }
-        };
-
-        // --- ADMIN MANAGER ---
-        const AdminManager = {
-            scan() {
-                tg.showScanQrPopup({ text: "Сканируйте QR клиента" }, async (qrText) => {
-                    tg.closeScanQrPopup(); 
-                    
-                    const statusEl = document.getElementById('scan-status');
-                    statusEl.innerHTML = '<span class="text-blue-600 animate-pulse">Обработка...</span>';
-                    
-                    try {
-                        let parsed;
-                        try { parsed = JSON.parse(qrText); } catch(e) { throw new Error("Invalid JSON"); }
-                        
-                        if (!parsed.sid) throw new Error("No SID");
-                        
-                        const res = await API.scanQR(State.user.id, parsed.sid);
-                        const result = Array.isArray(res) ? res[0].result : res.result; 
-
-                        if (result.status === 'success') {
-                            tg.HapticFeedback.notificationOccurred('success');
-                            tg.showAlert(result.message || "Успешно!");
-                            statusEl.innerHTML = '<span class="text-green-600 font-bold">✅ Успешно</span>';
-                        } else {
-                            tg.HapticFeedback.notificationOccurred('error');
-                            tg.showAlert(`Ошибка: ${result.message}`);
-                            statusEl.innerHTML = '<span class="text-red-500 font-bold">❌ Ошибка</span>';
-                        }
-                    } catch (e) {
-                        tg.showAlert("Неверный QR код");
-                        statusEl.innerHTML = '<span class="text-red-500">Неверный QR</span>';
-                    }
-                    return true;
-                });
-            }
-        };
-
-        // --- INIT ---
-        async function initApp() {
-            tg.expand();
-            tg.BackButton.onClick(() => Router.back());
-
-            const u = tg.initDataUnsafe?.user;
-            
-            // Check if opened in browser (Stub)
-            if (!u || !u.id) {
+        // === INITIALIZATION ===
+        async function init() {
+            if (!currentUser || !currentUser.id) {
                 document.getElementById('loader').classList.add('hidden');
                 document.getElementById('stub-view').classList.remove('hidden');
                 return;
             }
 
             try {
-                // Fetch User Data
-                const data = await API.initUser();
-                const userData = Array.isArray(data) ? data[0] : data;
+                const res = await fetch(`${API_BASE}/init-app?id=${currentUser.id}&first_name=${currentUser.first_name}`);
+                const data = await res.json();
+                // Сохраняем начальное состояние
+                lastUserState = Array.isArray(data) ? data[0] : data;
                 
-                // Hydrate State
-                State.user = u;
-                State.balance = userData.balance || 0;
-                State.totalStamps = userData.total_stamps || 0;
-                
-                // Route based on role
                 document.getElementById('loader').classList.add('hidden');
-                if (userData.is_admin) {
-                    Router.go('admin');
+
+                if (lastUserState.is_admin) {
+                    showAdminUI();
                 } else {
-                    Router.go('home');
+                    showClientUI(lastUserState);
                 }
             } catch (e) {
                 console.error(e);
-                alert("Ошибка загрузки. Проверьте интернет.");
+                tg.showAlert("Ошибка соединения");
             }
         }
 
-        // Start
-        initApp();
+        // === UI LOGIC: CLIENT ===
+        function showClientUI(user) {
+            document.getElementById('client-view').classList.remove('hidden');
+            document.getElementById('client-view').classList.add('flex');
+            
+            updateClientState(user);
+        }
 
+        function updateClientState(user) {
+            // Rank logic: используем сохраненное значение или 0
+            const stamps = user.total_stamps !== undefined ? user.total_stamps : (lastUserState.total_stamps || 0);
+            
+            let rank = 'Новичок';
+            if (stamps > 10) rank = 'Любитель';
+            if (stamps > 50) rank = 'Кофеман ☕️';
+            document.getElementById('user-rank').innerText = rank;
+
+            // Bonus card visibility
+            const bonusCount = user.bonus_cups !== undefined ? user.bonus_cups : (lastUserState.bonus_cups || 0);
+            
+            const bonusCard = document.getElementById('bonus-card');
+            if (bonusCount > 0) {
+                bonusCard.classList.remove('hidden');
+                document.getElementById('bonus-count').innerText = bonusCount;
+            } else {
+                bonusCard.classList.add('hidden');
+            }
+
+            renderStamps(user.balance !== undefined ? user.balance : (lastUserState.balance || 0));
+        }
+
+        function renderStamps(count) {
+            const grid = document.getElementById('stamps-grid');
+            grid.innerHTML = '';
+            for (let i = 1; i <= 6; i++) {
+                const isActive = i <= count;
+                const el = document.createElement('div');
+                el.className = `stamp aspect-square rounded-2xl border-4 flex items-center justify-center text-xl font-bold ${isActive ? 'active' : 'empty'}`;
+                el.innerHTML = isActive ? '☕️' : i;
+                grid.appendChild(el);
+            }
+        }
+
+        // === QR LOGIC ===
+        async function openQR(intent) {
+            document.getElementById('qr-modal').classList.remove('hidden');
+            document.getElementById('qr-modal').classList.add('flex');
+            document.getElementById('qr-title').innerText = intent === 'REDEEM' ? 'Списание бонуса' : 'Начисление штампа';
+            document.getElementById('qr-hint').innerText = intent === 'REDEEM' ? 'Бариста спишет 1 чашку' : 'Бариста начислит штамп';
+
+            const res = await fetch(`${API_BASE}/get-qr?user_id=${currentUser.id}&intent=${intent}`);
+            const data = await res.json();
+            const session = Array.isArray(data) ? data[0] : data;
+            currentSessionId = session.session_id;
+
+            document.getElementById('qrcode').innerHTML = '';
+            new QRCode(document.getElementById("qrcode"), {
+                text: JSON.stringify({ sid: currentSessionId }),
+                width: 200,
+                height: 200
+            });
+
+            startTimer();
+            startPolling();
+        }
+
+        function closeQR() {
+            document.getElementById('qr-modal').classList.add('hidden');
+            document.getElementById('qr-modal').classList.remove('flex');
+            clearInterval(pollInterval);
+            clearInterval(timerInterval);
+        }
+
+        function startTimer() {
+            let timeLeft = 300;
+            const bar = document.getElementById('timer-bar');
+            document.getElementById('qr-expired').classList.add('hidden');
+            
+            if(timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                bar.style.width = `${(timeLeft/300)*100}%`;
+                if(timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    document.getElementById('qr-expired').classList.remove('hidden');
+                }
+            }, 1000);
+        }
+
+        function startPolling() {
+            if(pollInterval) clearInterval(pollInterval);
+            pollInterval = setInterval(async () => {
+                try {
+                    const res = await fetch(`${API_BASE}/check-status?session_id=${currentSessionId}`);
+                    const data = await res.json();
+                    const statusData = Array.isArray(data) ? data[0] : data;
+                    
+                    if (statusData.status === 'USED') {
+                        closeQR();
+                        showSuccess(statusData); 
+                    }
+                } catch(e) { console.error("Poll error", e); }
+            }, 2000);
+        }
+
+        function showSuccess(data) {
+            document.getElementById('success-title').innerText = 'Успешно!';
+            
+            if (data.bonus_cups !== undefined) {
+                 // Обновляем локальный стейт, сохраняя total_stamps неизменным
+                lastUserState.balance = data.balance;
+                lastUserState.bonus_cups = data.bonus_cups;
+                updateClientState(lastUserState);
+            }
+            
+            document.getElementById('success-overlay').classList.remove('hidden');
+            tg.HapticFeedback.notificationOccurred('success');
+        }
+
+        function hideSuccess() {
+            document.getElementById('success-overlay').classList.add('hidden');
+        }
+
+        // === ADMIN LOGIC ===
+        function showAdminUI() {
+            document.getElementById('admin-view').classList.remove('hidden');
+            document.getElementById('admin-view').classList.add('flex');
+        }
+
+        function scanQR() {
+            tg.showScanQrPopup({ text: "Сканируйте QR клиента" }, async (qrText) => {
+                tg.closeScanQrPopup(); 
+                processScan(qrText);
+                return true;
+            });
+        }
+
+        async function processScan(qrText, forceAction = null) {
+            const statusDiv = document.getElementById('scan-status');
+            statusDiv.innerHTML = '<span class="text-blue-400">Обработка...</span>';
+            
+            try {
+                let sessionId;
+                if (forceAction && pendingDecisionSessionId) {
+                    sessionId = pendingDecisionSessionId;
+                } else {
+                    const parsed = JSON.parse(qrText);
+                    if (!parsed.sid) throw new Error();
+                    sessionId = parsed.sid;
+                }
+
+                const body = { 
+                    admin_id: currentUser.id, 
+                    qr_session: sessionId
+                };
+                if (forceAction) body.action = forceAction;
+
+                const res = await fetch(`${API_BASE}/scan-qr`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(body)
+                });
+                
+                const resultRaw = await res.json();
+                const result = Array.isArray(resultRaw) ? resultRaw[0].result : resultRaw.result; 
+
+                handleScanResult(result, sessionId);
+
+            } catch (e) {
+                tg.showAlert("Ошибка чтения QR");
+                statusDiv.innerHTML = '❌ Ошибка';
+            }
+        }
+
+        function handleScanResult(result, sessionId) {
+            const statusDiv = document.getElementById('scan-status');
+            
+            if (result.status === 'success') {
+                tg.showAlert(result.message);
+                statusDiv.innerHTML = '✅ Выполнено';
+                closeDecisionModal(); 
+            } 
+            else if (result.status === 'confirmation_required') {
+                statusDiv.innerHTML = '⚠️ Требуется действие';
+                pendingDecisionSessionId = sessionId; 
+                
+                document.getElementById('decision-client-name').innerText = result.user_name || 'Клиент';
+                document.getElementById('decision-bonus-count').innerText = result.bonus_cups;
+                document.getElementById('admin-decision-modal').classList.remove('hidden');
+                document.getElementById('admin-decision-modal').classList.add('flex');
+                tg.HapticFeedback.notificationOccurred('warning');
+            }
+            else {
+                tg.showAlert(`Ошибка: ${result.message}`);
+                statusDiv.innerHTML = '❌ ' + result.message;
+            }
+        }
+
+        function confirmAction(action) {
+            processScan(null, action);
+        }
+
+        function closeDecisionModal() {
+            document.getElementById('admin-decision-modal').classList.add('hidden');
+            document.getElementById('admin-decision-modal').classList.remove('flex');
+            pendingDecisionSessionId = null;
+        }
+
+        init();
     </script>
 </body>
 </html>

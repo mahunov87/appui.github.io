@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Coffee Bonus</title>
+    <title>Loyalty Wallet</title>
     
     <!-- Core Dependencies -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -49,11 +49,11 @@
             overflow-y: auto;
             background: #F9FAFB;
             display: none; /* Hidden by default */
+            flex-direction: column;
         }
         
         .page.active {
             display: flex;
-            flex-direction: column;
             z-index: 10;
         }
 
@@ -102,11 +102,38 @@
 
     <!-- ================= VIEWS ================= -->
 
+    <!-- [NEW] 0. WALLET VIEW (Fix P3: Global Wallet) -->
+    <div id="view-wallet" class="page px-5 py-6">
+        <header class="flex items-center justify-between mb-8">
+            <h1 class="text-2xl font-black text-gray-900">Мои Карты</h1>
+            <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                <i data-lucide="wallet" class="w-5 h-5 text-gray-500"></i>
+            </div>
+        </header>
+
+        <div id="wallet-list" class="space-y-4">
+            <!-- Cards injected by JS -->
+        </div>
+
+        <div id="wallet-empty" class="hidden flex flex-col items-center justify-center mt-20 text-center">
+            <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <i data-lucide="scan-line" class="w-10 h-10 text-gray-400"></i>
+            </div>
+            <h3 class="text-lg font-bold text-gray-800">Нет активных карт</h3>
+            <p class="text-gray-500 text-sm mt-2 max-w-[250px]">Отсканируйте QR-код в любимой кофейне, чтобы добавить первую карту.</p>
+        </div>
+    </div>
+
     <!-- 1. HOME VIEW (DASHBOARD) -->
     <div id="view-home" class="page px-5 py-6">
         <!-- User Header (SaaS Updated) -->
         <header class="flex items-center justify-between mb-8">
             <div class="flex items-center gap-3">
+                <!-- Back to Wallet Button (Only if multiple cards exist or wallet mode used) -->
+                <button id="btn-back-wallet" onclick="Router.go('wallet')" class="hidden p-1 -ml-1 text-gray-400 active:scale-90 transition-transform">
+                    <i data-lucide="chevron-left" class="w-6 h-6"></i>
+                </button>
+
                 <img id="app-logo" src="" alt="Logo" class="w-12 h-12 rounded-full object-cover border-2 border-gray-100 shadow-sm bg-white">
                 <div>
                     <!-- Dynamic Business Name -->
@@ -114,7 +141,14 @@
                     <p id="user-name" class="text-xs text-gray-500 font-medium">Привет, Гость!</p>
                 </div>
             </div>
-            <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+            
+            <!-- [FIX P2] Admin Button (Only shown if admin) -->
+            <button id="btn-admin-panel" onclick="Router.go('admin')" class="hidden w-10 h-10 bg-gray-900 text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform">
+                <i data-lucide="settings" class="w-5 h-5"></i>
+            </button>
+
+            <!-- Regular User Icon (Hidden if Admin button is shown) -->
+            <div id="user-icon-placeholder" class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
                 <i data-lucide="user" class="w-5 h-5 text-gray-500"></i>
             </div>
         </header>
@@ -176,6 +210,7 @@
                 <span class="font-bold">Показать QR</span>
             </button>
 
+            <!-- [RESTORED] Contacts Button -->
             <button onclick="Router.go('contacts')" class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform">
                 <div class="w-12 h-12 bg-green-50 text-green-600 rounded-full flex items-center justify-center">
                     <i data-lucide="phone" class="w-6 h-6"></i>
@@ -183,6 +218,7 @@
                 <span class="font-bold text-gray-700">Контакты</span>
             </button>
 
+            <!-- [RESTORED] Help Button -->
             <button onclick="Router.go('help')" class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform">
                 <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-full flex items-center justify-center">
                     <i data-lucide="help-circle" class="w-6 h-6"></i>
@@ -307,7 +343,7 @@
         </div>
     </div>
 
-    <!-- 5. CONTACTS -->
+    <!-- [RESTORED] 5. CONTACTS -->
     <div id="view-contacts" class="page px-6 py-6">
         <div class="flex items-center mb-8">
             <button onclick="Router.back()" class="p-2 -ml-2 text-gray-400 hover:text-gray-900"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
@@ -322,7 +358,7 @@
         </div>
     </div>
 
-    <!-- 6. HELP -->
+    <!-- [RESTORED] 6. HELP -->
     <div id="view-help" class="page px-6 py-6">
         <div class="flex items-center mb-8">
             <button onclick="Router.back()" class="p-2 -ml-2 text-gray-400 hover:text-gray-900"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
@@ -338,11 +374,14 @@
         </div>
     </div>
 
-    <!-- === ADMIN VIEW (SaaS Updated) === -->
+    <!-- === ADMIN VIEW (Moved to separate view for better UX) === -->
     <div id="view-admin" class="page px-6 py-6 flex flex-col">
         <div class="flex items-center justify-between mb-8">
-            <h2 class="text-2xl font-bold text-gray-900">Владелец</h2>
-            <div class="px-3 py-1 bg-gray-100 rounded-full text-xs font-bold text-gray-500">ADMIN</div>
+            <div class="flex items-center gap-2">
+                <button onclick="Router.back()" class="p-2 -ml-2 text-gray-400 hover:text-gray-900"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
+                <h2 class="text-2xl font-bold text-gray-900">Кабинет Владельца</h2>
+            </div>
+            <div class="px-3 py-1 bg-gray-100 rounded-full text-xs font-bold text-gray-500">OWNER</div>
         </div>
 
         <!-- Info Card -->
@@ -358,7 +397,7 @@
                 Сканировать Клиента
             </button>
 
-            <!-- [NEW] INVITE BUTTON -->
+            <!-- INVITE BUTTON -->
             <button onclick="AdminManager.showInviteQR()" class="w-full py-5 bg-theme text-white font-bold rounded-2xl shadow-lg shadow-theme/30 active:scale-95 transition-transform flex items-center justify-center gap-3">
                 <i data-lucide="qr-code" class="w-6 h-6"></i>
                 QR для входа
@@ -373,7 +412,7 @@
         <div id="scan-status" class="mt-6 text-center h-6 text-sm font-medium"></div>
     </div>
 
-    <!-- === ADMIN SETTINGS (NEW SaaS Feature) === -->
+    <!-- === ADMIN SETTINGS (Full Version) === -->
     <div id="view-admin-settings" class="page px-6 py-6 flex flex-col">
         <div class="flex items-center mb-6">
             <button onclick="Router.back()" class="p-2 -ml-2 text-gray-400 hover:text-gray-900 active:scale-90 transition-transform"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
@@ -418,7 +457,7 @@
         </button>
     </div>
 
-    <!-- === INVITE QR MODAL (New) === -->
+    <!-- === INVITE QR MODAL (Full) === -->
     <div id="admin-invite-modal" class="hidden fixed inset-0 z-[80] bg-black/80 flex items-center justify-center p-6 fade-in">
         <div class="bg-white rounded-3xl w-full max-w-sm p-6 text-center shadow-2xl relative">
             <button onclick="document.getElementById('admin-invite-modal').classList.add('hidden')" class="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-900"><i data-lucide="x" class="w-6 h-6"></i></button>
@@ -430,7 +469,7 @@
         </div>
     </div>
 
-    <!-- === ADMIN CONFLICT MODAL === -->
+    <!-- === ADMIN CONFLICT MODAL (Full) === -->
     <div id="admin-conflict-modal" class="hidden fixed inset-0 z-[70] bg-black/50 flex items-center justify-center p-4 fade-in">
         <div class="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl">
             <div class="text-center mb-6">
@@ -456,7 +495,6 @@
     <script>
         // --- CONFIG ---
         const API_BASE = 'https://n8n.inflio.xyz/webhook';
-        // ⚠️ ЗАМЕНИТЕ НА ЮЗЕРНЕЙМ ВАШЕГО БОТА (Без @)
         const BOT_USERNAME = 'SeldonLoyaltyBot'; 
         const tg = window.Telegram.WebApp;
         
@@ -466,7 +504,9 @@
         // --- STATE ---
         const State = {
             user: null,
-            config: { // Default Config
+            mode: 'loading', // 'wallet' | 'business'
+            wallets: [],
+            config: { 
                 name: "Loading...",
                 target_count: 6,
                 theme_color: "#F59E0B",
@@ -477,10 +517,10 @@
             balance: 0,
             bonusCups: 0, 
             totalStamps: 0,
-            rank: 'Новичок',
-            businessId: null, // [NEW] Store current business ID
+            businessId: null, // Context
             currentSessionId: null,
             qrIntent: 'EARN',
+            rank: 'Guest',
             tempTarget: 6 // For Settings UI
         };
 
@@ -503,7 +543,8 @@
                     }
                     if(viewId === 'home') UIManager.renderHome();
                     if(viewId === 'card') UIManager.renderCard();
-                    if(viewId === 'bonuses') UIManager.renderBonuses(); 
+                    if(viewId === 'bonuses') UIManager.renderBonuses();
+                    if(viewId === 'wallet') UIManager.renderWallet();
                     if(viewId === 'admin-settings') AdminManager.initSettingsForm();
                 }
                 
@@ -528,18 +569,14 @@
 
         // --- API SECURITY LAYER ---
         const API = {
-            // Centralized Request Handler with Auth Headers
             async request(endpoint, method = 'GET', body = null) {
                 const headers = {
                     'Content-Type': 'application/json',
-                    // 🔒 SECURITY: Send Telegram InitData in Header
                     'X-Telegram-Auth': tg.initData || ''
                 };
-
                 const config = { method, headers };
                 if (body && method !== 'GET') config.body = JSON.stringify(body);
 
-                // Build Query String if GET and params exist
                 let url = `${API_BASE}/${endpoint}`;
                 if (method === 'GET' && body) {
                     const params = new URLSearchParams(body).toString();
@@ -556,7 +593,6 @@
                 }
             },
 
-            // SaaS Init
             async initApp(startParam) {
                 return await this.request('init-app', 'GET', { start_param: startParam });
             },
@@ -566,7 +602,8 @@
             },
             
             async getQR(intent) {
-                return await this.request('get-qr', 'GET', { intent: intent });
+                // [FIX] Explicitly send business_id context
+                return await this.request('get-qr', 'GET', { intent: intent, business_id: State.businessId });
             },
             
             async checkStatus(sessionId) {
@@ -574,7 +611,7 @@
             },
 
             async scanQR(qrSession, action = null) {
-                const body = { qr_session: qrSession }; // Admin ID handled by token on backend
+                const body = { qr_session: qrSession }; 
                 if (action) body.action = action;
                 return await this.request('scan-qr', 'POST', body);
             }
@@ -582,22 +619,63 @@
 
         // --- UI MANAGER ---
         const UIManager = {
-            // 🎨 THEME ENGINE
             applyTheme(cfg) {
                 const root = document.documentElement;
                 root.style.setProperty('--theme-color', cfg.theme_color || '#F59E0B');
-                
-                // Simple lighten logic or use backend provided
                 root.style.setProperty('--theme-bg', cfg.bg_color || '#FFFBEB');
                 
-                // Set Content
                 document.getElementById('app-title').innerText = cfg.name || 'Loyalty';
                 document.getElementById('app-logo').src = cfg.logo_url || 'https://via.placeholder.com/100?text=Logo';
                 document.getElementById('admin-biz-name').innerText = cfg.name || 'Бизнес';
                 
-                // Set Telegram Header
                 tg.setHeaderColor(cfg.theme_color || '#F59E0B');
                 tg.setBackgroundColor('#F9FAFB');
+            },
+
+            renderWallet() {
+                const list = document.getElementById('wallet-list');
+                list.innerHTML = '';
+                
+                if(!State.wallets || !State.wallets.length) {
+                    document.getElementById('wallet-empty').classList.remove('hidden');
+                    return;
+                }
+                
+                document.getElementById('wallet-empty').classList.add('hidden');
+                
+                State.wallets.forEach(w => {
+                    const el = document.createElement('div');
+                    el.className = "bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between active:scale-95 transition-transform cursor-pointer mb-3";
+                    el.onclick = () => {
+                        // Switch context manually
+                        State.businessId = w.business_id;
+                        State.config = { 
+                            name: w.name, 
+                            theme_color: w.theme, 
+                            logo_url: w.logo, 
+                            target_count: w.target 
+                        };
+                        State.balance = w.balance;
+                        // In production, you might want to re-fetch full details here
+                        this.applyTheme(State.config);
+                        Router.go('home');
+                    };
+                    
+                    el.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <img src="${w.logo || 'https://via.placeholder.com/40'}" class="w-12 h-12 rounded-full bg-gray-50 object-cover border border-gray-100">
+                            <div>
+                                <p class="font-bold text-gray-900 text-lg">${w.name}</p>
+                                <p class="text-sm text-gray-500 font-medium">${w.balance} / ${w.target} штампов</p>
+                            </div>
+                        </div>
+                        <div class="w-8 h-8 bg-gray-50 rounded-full flex items-center justify-center">
+                            <i data-lucide="chevron-right" class="text-gray-400 w-5 h-5"></i>
+                        </div>
+                    `;
+                    list.appendChild(el);
+                });
+                lucide.createIcons();
             },
 
             renderHome() {
@@ -626,6 +704,11 @@
                 if(State.totalStamps > 30) rank = "VIP Клиент";
                 document.getElementById('user-rank').innerText = rank;
                 State.rank = rank;
+                
+                // Show Back Button if in wallet mode (simple check)
+                if (State.mode === 'wallet') {
+                    document.getElementById('btn-back-wallet').classList.remove('hidden');
+                }
             },
 
             renderBonuses() {
@@ -782,7 +865,6 @@
         const AdminManager = {
             conflictSessionId: null,
 
-            // Show Invite QR Modal
             showInviteQR() {
                 const link = `https://t.me/${BOT_USERNAME}/app?startapp=${State.businessId}`;
                 document.getElementById('invite-link-text').innerText = link;
@@ -840,7 +922,6 @@
                     tg.MainButton.showProgress();
                     await API.saveSettings(newSettings);
                     
-                    // Optimistic Update
                     State.config = { ...State.config, ...newSettings.config, name: newSettings.name };
                     UIManager.applyTheme(State.config);
                     
@@ -875,7 +956,7 @@
                             statusEl.innerHTML = '<span class="text-green-600 font-bold">✅ Успешно</span>';
                         } 
                         else if (result.status === 'confirmation_required') {
-                            this.conflictSessionId = result.session_id;
+                            this.conflictSessionId = parsed.sid; // FIX: Use parsed.sid
                             document.getElementById('conflict-username').innerText = result.user_name || 'Клиент';
                             document.getElementById('conflict-bonus-count').innerText = result.bonus_cups;
                             document.getElementById('admin-conflict-modal').classList.remove('hidden');
@@ -929,7 +1010,6 @@
             tg.BackButton.onClick(() => Router.back());
 
             const user = tg.initDataUnsafe?.user;
-            // 🛠 Fallback to URL search param if initData start_param is missing
             const startParam = tg.initDataUnsafe?.start_param || new URLSearchParams(window.location.search).get('startapp') || "";
 
             if (!user) {
@@ -939,33 +1019,41 @@
             }
 
             try {
-                // SaaS Init Call
-                const res = await API.initApp(startParam);
+                let res = await API.initApp(startParam);
                 
-                // 🛠 Handle nested 'data' object from SQL function result
+                // Unwrap potential nested structure
                 let data = Array.isArray(res) ? res[0] : res;
-                if (data.data) {
-                    data = data.data; // Unwrap if nested
-                }
-                
-                // Hydrate State
+                if (data.data) { data = data.data; }
+
                 State.user = user;
-                // FIX: Merge business_name into config so it is available for settings form
-                State.config = { ...data.business_config, name: data.business_name } || State.config; 
-                State.balance = data.balance;
-                State.bonusCups = data.bonus_cups;
-                State.totalStamps = data.total_stamps;
-                State.businessId = data.business_id;
 
-                // Apply Branding
-                UIManager.applyTheme(State.config);
-                
-                document.getElementById('loader').classList.add('hidden');
-
-                // Routing
-                if (data.is_admin) {
-                    Router.go('admin');
+                // [FIX P1 & P3] Handle Wallet Mode vs Business Mode
+                if (data.mode === 'wallet') {
+                    State.mode = 'wallet';
+                    State.wallets = data.wallets;
+                    document.getElementById('loader').classList.add('hidden');
+                    Router.go('wallet');
                 } else {
+                    // Regular Business Mode
+                    State.mode = 'business';
+                    State.businessId = data.business_id;
+                    State.config = { ...data.business_config, name: data.business_name } || State.config;
+                    State.balance = data.balance;
+                    State.bonusCups = data.bonus_cups;
+                    State.totalStamps = data.total_stamps;
+
+                    // Apply Branding
+                    UIManager.applyTheme(State.config);
+                    document.getElementById('loader').classList.add('hidden');
+
+                    // [FIX P2] Show Admin Button if admin
+                    if (data.is_admin) {
+                        document.getElementById('btn-admin-panel').classList.remove('hidden');
+                        document.getElementById('user-icon-placeholder').classList.add('hidden');
+                    } else {
+                         document.getElementById('btn-admin-panel').classList.add('hidden');
+                         document.getElementById('user-icon-placeholder').classList.remove('hidden');
+                    }
                     Router.go('home');
                 }
 

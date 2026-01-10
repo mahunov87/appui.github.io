@@ -214,7 +214,7 @@
                 <span class="font-bold text-gray-700">Моя карта</span>
             </button>
 
-            <!-- QR Action: [FIXED TEXT] was 'Сканировать сейчас' -->
+            <!-- QR Action [FIXED TEXT] -->
             <button onclick="Router.go('qr', 'EARN')" class="bg-theme p-5 rounded-2xl shadow-lg shadow-theme/30 flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform text-white">
                 <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
                     <i data-lucide="qr-code" class="w-6 h-6"></i>
@@ -899,7 +899,7 @@
                 try {
                     const data = await API.getQR(State.qrIntent);
                     
-                    // Robust check: Handle both [{ session_id: ... }] and [{ result: { session_id: ... } }]
+                    // [ROBUST PARSING] Handle both [{ session_id: ... }] and [{ result: { session_id: ... } }]
                     const row = Array.isArray(data) ? data[0] : data;
                     const sessionId = row.session_id || (row.result && row.result.session_id);
                     
@@ -992,7 +992,9 @@
 
             showInviteQR() {
                 const botName = State.config.bot_username || DEFAULT_BOT_USERNAME;
-                const link = `https://t.me/${botName}?startapp=${State.businessId}`;
+                // [FIXED] Changed to ?start= to force Bot logic triggering for new users
+                const link = `https://t.me/${botName}?start=${State.businessId}`;
+                
                 document.getElementById('invite-link-text').innerText = link;
                 document.getElementById('invite-qrcode').innerHTML = '';
                 new QRCode(document.getElementById("invite-qrcode"), {

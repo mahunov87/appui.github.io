@@ -30,7 +30,6 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
             -webkit-tap-highlight-color: transparent;
             background-color: #F9FAFB;
-            /* Anti-FOUC: Hidden until JS inits */
             visibility: hidden; 
             opacity: 0;
             transition: opacity 0.3s ease;
@@ -95,7 +94,7 @@
 
     <!-- ================= VIEWS ================= -->
 
-    <!-- [NEW] 0. DASHBOARD (HYBRID HUB) -->
+    <!-- [UPDATED] 0. DASHBOARD (HYBRID HUB) -->
     <div id="view-dashboard" class="page px-5 py-6">
         <header class="flex items-center justify-between mb-8">
             <h1 class="text-2xl font-black text-gray-900">Главное меню</h1>
@@ -186,7 +185,6 @@
                 <i data-lucide="qr-code" class="w-6 h-6"></i>
                 <span class="font-bold text-sm">QR Код</span>
             </button>
-            <!-- Restored Contacts/Help -->
             <button onclick="Router.go('contacts')" class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center gap-2 active:scale-95 transition-transform">
                 <i data-lucide="map-pin" class="w-6 h-6 text-green-500"></i>
                 <span class="font-bold text-sm">Контакты</span>
@@ -252,7 +250,7 @@
         </div>
     </div>
 
-    <!-- [RESTORED] 5. SUCCESS VIEW -->
+    <!-- 5. SUCCESS VIEW -->
     <div id="view-success" class="page px-6 py-6 flex flex-col items-center justify-center bg-theme-soft">
         <div class="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-6 shadow-lg shadow-theme/20 stamp-enter text-theme">
             <i data-lucide="check" class="w-12 h-12"></i>
@@ -264,7 +262,7 @@
         </button>
     </div>
 
-    <!-- [RESTORED] 6. CONTACTS VIEW -->
+    <!-- 6. CONTACTS VIEW -->
     <div id="view-contacts" class="page px-6 py-6">
         <div class="flex items-center mb-6">
             <button onclick="Router.back()" class="p-2 -ml-2 text-gray-400"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
@@ -279,7 +277,7 @@
         </div>
     </div>
 
-    <!-- [RESTORED] 7. HELP VIEW -->
+    <!-- 7. HELP VIEW -->
     <div id="view-help" class="page px-6 py-6">
         <div class="flex items-center mb-6">
             <button onclick="Router.back()" class="p-2 -ml-2 text-gray-400"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
@@ -487,7 +485,8 @@
                 const adminSec = document.getElementById('dash-admin-section');
                 adminList.innerHTML = '';
                 
-                if(State.owned.length > 0) {
+                // Show Admin section if I own anything
+                if(State.owned && State.owned.length > 0) {
                     adminSec.classList.remove('hidden');
                     State.owned.forEach(biz => {
                         const div = document.createElement('div');
@@ -519,7 +518,7 @@
                 const walletList = document.getElementById('dash-wallet-list');
                 walletList.innerHTML = '';
                 
-                if(State.member.length > 0) {
+                if(State.member && State.member.length > 0) {
                     document.getElementById('dash-wallet-empty').classList.add('hidden');
                     State.member.forEach(w => {
                         const div = document.createElement('div');
@@ -829,108 +828,55 @@
             }
             State.user = user;
 
-            // Get Start Param
             const startParam = tg.initDataUnsafe?.start_param || "";
 
             try {
                 const res = await API.call('init-app', { start_param: startParam });
-                const data = Array.isArray(res) ? res[0] : res;
+                let data = Array.isArray(res) ? res[0] : res;
+                if (data.data) data = data.data; // Unwrap n8n wrapper
+                else if (data.register_or_get_customer) data = data.register_or_get_customer;
                 
+                // [FIX v1.7] Compatible parsing
                 State.owned = data.owned_businesses || [];
-                State.member = data.member_businesses || [];
-
-                // --- ROUTING MATRIX v1.5 ---
+                State.member = data.member_businesses || data.wallets || [];
                 
                 const isOwner = State.owned.length > 0;
                 const isMember = State.member.length > 0;
-                const hasTarget = !!data.target_business_id;
+                const targetId = data.target_business_id;
 
-                // 1. Deep Link Priority: Always try to open specific business
-                if (hasTarget) {
-                    const targetBiz = State.member.find(m => m.business_id === data.target_business_id);
+                // 1. Target ID (Deep Link)
+                if (targetId) {
+                    const targetBiz = State.member.find(m => m.business_id === targetId);
                     if (targetBiz) {
-                        // User is a member of target
-                        State.activeBusiness = {
-                            id: targetBiz.business_id,
-                            name: targetBiz.name,
-                            role: 'customer',
-                            theme_color: targetBiz.theme,
-                            target_count: targetBiz.target,
-                            logo_url: targetBiz.logo,
-                            balance: targetBiz.balance,
-                            bonus_cups: targetBiz.bonus_cups
-                        };
-                        UIManager.applyTheme(State.activeBusiness);
-                        document.getElementById('loader').classList.add('hidden');
-                        document.body.style.visibility = 'visible';
-                        document.body.style.opacity = '1';
-                        Router.go('home');
+                        enterBusiness(targetBiz);
                         return;
                     }
-                    // Edge case: Deep link to business I own but am not a member? 
-                    // Usually owner is handled separately. For v1.5, fall through to Dashboard if deep link fails (or is self-own)
+                    // If target business is owned but not joined as member?
+                    const ownedBiz = State.owned.find(o => o.id === targetId);
+                    if(ownedBiz) {
+                         enterAdmin(ownedBiz);
+                         return;
+                    }
                 }
 
-                // 2. Hybrid or Multi-Role
+                // 2. Hybrid Dashboard
                 if (isOwner && isMember) {
-                    document.getElementById('loader').classList.add('hidden');
-                    document.body.style.visibility = 'visible';
-                    document.body.style.opacity = '1';
-                    Router.go('dashboard');
+                    showDashboard();
                 }
                 // 3. Pure Owner
-                else if (isOwner && !isMember) {
-                    // Auto-select first business for now, or dashboard if multiple
-                    if(State.owned.length === 1) {
-                         const biz = State.owned[0];
-                         State.activeBusiness = { ...biz, role: 'admin' };
-                         // Flat mapping
-                         State.activeBusiness.theme_color = biz.config.theme_color;
-                         State.activeBusiness.target_count = biz.config.target_count;
-                         
-                         UIManager.applyTheme(State.activeBusiness);
-                         document.getElementById('loader').classList.add('hidden');
-                         document.body.style.visibility = 'visible';
-                         document.body.style.opacity = '1';
-                         Router.go('admin');
-                    } else {
-                         Router.go('dashboard');
-                    }
+                else if (isOwner) {
+                    // If 1 business -> Auto Enter Admin, else Dashboard
+                    if(State.owned.length === 1) enterAdmin(State.owned[0]);
+                    else showDashboard();
                 }
                 // 4. Pure Customer
-                else if (!isOwner && isMember) {
-                    if (State.member.length === 1) {
-                        // Single business - Auto Enter
-                        const w = State.member[0];
-                        State.activeBusiness = { 
-                            id: w.business_id, 
-                            name: w.name, 
-                            role: 'customer',
-                            theme_color: w.theme,
-                            target_count: w.target,
-                            logo_url: w.logo,
-                            balance: w.balance,
-                            bonus_cups: w.bonus_cups
-                        };
-                        UIManager.applyTheme(State.activeBusiness);
-                        document.getElementById('loader').classList.add('hidden');
-                        document.body.style.visibility = 'visible';
-                        document.body.style.opacity = '1';
-                        Router.go('home');
-                    } else {
-                        // Multiple cards - List
-                        document.getElementById('loader').classList.add('hidden');
-                        document.body.style.visibility = 'visible';
-                        document.body.style.opacity = '1';
-                        Router.go('dashboard');
-                    }
+                else if (isMember) {
+                    if (State.member.length === 1) enterBusiness(State.member[0]);
+                    else showDashboard();
                 }
-                // 5. New User (No cards, no business)
+                // 5. New User
                 else {
-                    document.getElementById('loader').classList.add('hidden');
-                    document.body.style.visibility = 'visible';
-                    document.body.style.opacity = '1';
-                    Router.go('dashboard'); // Shows empty wallet state
+                    showDashboard(); // Will show empty state
                 }
 
             } catch(e) {
@@ -940,6 +886,47 @@
                 document.body.style.visibility = 'visible';
                 document.body.style.opacity = '1';
             }
+        }
+        
+        // Helpers for Router logic
+        function showDashboard() {
+            document.getElementById('loader').classList.add('hidden');
+            document.body.style.visibility = 'visible';
+            document.body.style.opacity = '1';
+            Router.go('dashboard');
+        }
+        
+        function enterBusiness(biz) {
+            State.activeBusiness = {
+                id: biz.business_id,
+                name: biz.name,
+                role: 'customer',
+                theme_color: biz.theme,
+                target_count: biz.target,
+                logo_url: biz.logo,
+                balance: biz.balance,
+                bonus_cups: biz.bonus_cups
+            };
+            UIManager.applyTheme(State.activeBusiness);
+            document.getElementById('loader').classList.add('hidden');
+            document.body.style.visibility = 'visible';
+            document.body.style.opacity = '1';
+            Router.go('home');
+        }
+        
+        function enterAdmin(biz) {
+             State.activeBusiness = { ...biz, role: 'admin' };
+             // Flat map config for easier access
+             if(biz.config) {
+                 State.activeBusiness.theme_color = biz.config.theme_color;
+                 State.activeBusiness.target_count = biz.config.target_count;
+                 State.activeBusiness.logo_url = biz.config.logo_url;
+             }
+             UIManager.applyTheme(State.activeBusiness);
+             document.getElementById('loader').classList.add('hidden');
+             document.body.style.visibility = 'visible';
+             document.body.style.opacity = '1';
+             Router.go('admin');
         }
 
         start();

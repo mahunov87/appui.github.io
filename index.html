@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Loyalty Hybrid</title>
+    <title>Loyalty Wallet</title>
     
     <!-- Dependencies -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -30,7 +30,6 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
             -webkit-tap-highlight-color: transparent;
             background-color: #F9FAFB;
-            /* Anti-FOUC: Скрываем контент до полной инициализации JS */
             visibility: hidden; 
             opacity: 0;
             transition: opacity 0.3s ease;
@@ -56,14 +55,13 @@
             z-index: 10;
         }
 
-        /* Success Animation */
+        /* Animations */
         .stamp-enter { animation: stamp-pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         @keyframes stamp-pop {
             0% { transform: scale(0); opacity: 0; }
             100% { transform: scale(1); opacity: 1; }
         }
 
-        /* Custom Scrollbar hide */
         .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
@@ -72,7 +70,7 @@
     <!-- === LOADER === -->
     <div id="loader" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white">
         <div class="w-10 h-10 border-4 border-gray-100 border-t-blue-600 rounded-full animate-spin mb-4"></div>
-        <p class="text-gray-400 text-sm font-medium animate-pulse">Загрузка данных...</p>
+        <p class="text-gray-400 text-sm font-medium animate-pulse">Загрузка...</p>
     </div>
 
     <!-- === DESKTOP STUB === -->
@@ -96,8 +94,7 @@
 
     <!-- ================= VIEWS ================= -->
 
-    <!-- [NEW] 0. DASHBOARD (HYBRID HUB) -->
-    <!-- Этот экран заменяет старый Wallet View для гибридных пользователей -->
+    <!-- 0. DASHBOARD (HYBRID HUB) -->
     <div id="view-dashboard" class="page px-5 py-6">
         <header class="flex items-center justify-between mb-8">
             <div>
@@ -107,20 +104,16 @@
             <div id="dashboard-avatar" class="w-10 h-10 bg-gray-200 rounded-full overflow-hidden"></div>
         </header>
 
-        <!-- Admin Section -->
+        <!-- Admin Section (My Businesses) -->
         <div id="dash-admin-section" class="mb-8 hidden">
             <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 pl-1">Мой Бизнес</p>
-            <div id="dash-admin-list" class="space-y-3">
-                <!-- Injected via JS -->
-            </div>
+            <div id="dash-admin-list" class="space-y-3"></div>
         </div>
 
-        <!-- Wallet Section -->
+        <!-- Wallet Section (My Cards) -->
         <div id="dash-wallet-section" class="flex-1">
             <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 pl-1">Мои Карты</p>
-            <div id="dash-wallet-list" class="space-y-3">
-                <!-- Injected via JS -->
-            </div>
+            <div id="dash-wallet-list" class="space-y-3"></div>
             
             <div id="dash-wallet-empty" class="hidden py-12 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200">
                 <i data-lucide="wallet" class="w-10 h-10 text-gray-300 mx-auto mb-3"></i>
@@ -130,11 +123,10 @@
         </div>
     </div>
 
-    <!-- 1. BUSINESS HOME (CUSTOMER VIEW) -->
+    <!-- 1. BUSINESS HOME -->
     <div id="view-home" class="page px-5 py-6">
         <header class="flex items-center justify-between mb-6">
             <div class="flex items-center gap-3">
-                <!-- Кнопка назад ведет на Дашборд, если карт > 1 или если мы админ -->
                 <button onclick="Router.go('dashboard')" class="p-1 -ml-1 text-gray-400 active:scale-90 transition-transform">
                     <i data-lucide="chevron-left" class="w-6 h-6"></i>
                 </button>
@@ -144,14 +136,11 @@
                     <p class="text-xs text-gray-500" id="app-subtitle">Бонусная программа</p>
                 </div>
             </div>
-            
-            <!-- Кнопка "Настройки" (только если владелец ЭТОГО бизнеса) -->
             <button id="btn-context-admin" onclick="Router.go('admin')" class="hidden w-10 h-10 bg-gray-900 text-white rounded-full flex items-center justify-center shadow-md active:scale-90 transition-transform">
                 <i data-lucide="settings" class="w-5 h-5"></i>
             </button>
         </header>
 
-        <!-- Stats Card -->
         <div class="bg-gray-900 rounded-3xl p-6 text-white shadow-xl shadow-gray-200 mb-6 relative overflow-hidden group">
             <div class="absolute -top-10 -right-10 w-40 h-40 bg-theme opacity-20 rounded-full blur-3xl group-hover:opacity-30 transition-opacity"></div>
             <div class="relative z-10 flex justify-between items-end">
@@ -169,7 +158,6 @@
             </div>
         </div>
 
-        <!-- Bonuses Button -->
         <button onclick="Router.go('bonuses')" class="w-full mb-6 py-4 bg-theme-soft border border-theme/20 rounded-2xl flex items-center justify-between px-6 shadow-sm active:scale-95 transition-transform group">
             <div class="flex items-center gap-4">
                 <div class="w-10 h-10 bg-theme text-white rounded-full flex items-center justify-center shadow-lg shadow-theme/30">
@@ -183,7 +171,6 @@
             <i data-lucide="chevron-right" class="w-5 h-5 text-gray-400"></i>
         </button>
 
-        <!-- Grid Actions -->
         <div class="grid grid-cols-2 gap-4">
             <button onclick="Router.go('card')" class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center gap-2 active:scale-95 transition-transform">
                 <i data-lucide="credit-card" class="w-6 h-6 text-blue-500"></i>
@@ -229,9 +216,7 @@
             <h2 class="text-xl font-bold ml-2">Моя карта</h2>
         </div>
         <div class="bg-white rounded-3xl p-6 shadow-lg border border-gray-100 flex-1 flex flex-col items-center">
-            <div id="stamps-grid" class="grid grid-cols-3 gap-4 w-full place-items-center mb-auto pt-8">
-                <!-- Generated -->
-            </div>
+            <div id="stamps-grid" class="grid grid-cols-3 gap-4 w-full place-items-center mb-auto pt-8"></div>
             <button onclick="Router.go('qr', 'EARN')" class="w-full py-4 mt-8 bg-gray-900 text-white font-bold rounded-xl active:scale-95">
                 Сканировать
             </button>
@@ -360,8 +345,6 @@
     </div>
 
     <!-- === MODALS === -->
-    
-    <!-- Invite Modal -->
     <div id="modal-invite" class="hidden fixed inset-0 z-[70] bg-black/80 flex items-center justify-center p-6 fade-in">
         <div class="bg-white rounded-3xl w-full max-w-sm p-6 text-center relative">
             <button onclick="document.getElementById('modal-invite').classList.add('hidden')" class="absolute top-4 right-4 p-2 text-gray-400"><i data-lucide="x" class="w-6 h-6"></i></button>
@@ -371,7 +354,6 @@
         </div>
     </div>
 
-    <!-- Conflict Modal -->
     <div id="modal-conflict" class="hidden fixed inset-0 z-[70] bg-black/60 flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl">
             <h3 class="text-lg font-bold mb-2">Есть бонусы!</h3>
@@ -384,19 +366,17 @@
     </div>
 
     <script>
-        // --- CONSTANTS ---
-        const API_BASE = 'https://n8n.inflio.xyz/webhook'; // Update if needed
+        // --- CONFIGURATION ---
+        const API_BASE = 'https://n8n.inflio.xyz/webhook'; // No changes to N8N
         const BOT_USERNAME = 'SeldonLoya_bot'; 
         const tg = window.Telegram.WebApp;
 
         // --- GLOBAL STATE ---
         const State = {
             user: null,
-            owned: [],  // Businesses I own
-            member: [], // Businesses I use
-            activeBusiness: null, // Current context
-            
-            // Temporary Logic
+            owned: [],
+            member: [],
+            activeBusiness: null,
             qrSession: null,
             tempTarget: 6
         };
@@ -404,7 +384,6 @@
         // --- ROUTER ---
         const Router = {
             history: [],
-            
             go(viewId, param = null) {
                 const views = document.querySelectorAll('.page');
                 views.forEach(v => v.classList.remove('active'));
@@ -414,54 +393,40 @@
                     target.classList.add('active');
                     this.history.push(viewId);
                     
-                    // View Hooks
                     if(viewId === 'home') UIManager.renderHome();
                     if(viewId === 'dashboard') UIManager.renderDashboard();
                     if(viewId === 'card') UIManager.renderCard();
                     if(viewId === 'bonuses') UIManager.renderBonuses();
-                    if(viewId === 'success') UIManager.renderSuccess(); // Hook for success
+                    if(viewId === 'success') UIManager.renderSuccess();
                     if(viewId === 'qr') QRManager.init(param);
                     if(viewId === 'admin-settings') AdminManager.initSettings();
                 }
 
-                // Show back button logic
                 if(this.history.length > 1) tg.BackButton.show();
                 else tg.BackButton.hide();
                 
                 setTimeout(() => lucide.createIcons(), 50);
             },
-
             back() {
                 if(this.history.length <= 1) return;
                 this.history.pop();
                 const prev = this.history[this.history.length - 1];
-                
                 document.querySelectorAll('.page').forEach(v => v.classList.remove('active'));
                 document.getElementById(`view-${prev}`).classList.add('active');
-                
                 if(prev !== 'qr') QRManager.stop();
                 if(this.history.length <= 1) tg.BackButton.hide();
             }
         };
 
-        // --- API LAYER ---
+        // --- API LAYER (SIMPLIFIED TO ORIGINAL) ---
         const API = {
             async call(endpoint, body = {}) {
                 try {
-                    const headers = { 
-                        'Content-Type': 'application/json',
-                        'X-Telegram-Auth': tg.initData 
-                    };
-                    
-                    // GET requests helper for init
+                    const headers = { 'Content-Type': 'application/json', 'X-Telegram-Auth': tg.initData };
                     let url = `${API_BASE}/${endpoint}`;
                     let opts = { method: 'POST', headers, body: JSON.stringify(body) };
                     
-                    if(endpoint === 'init-app') {
-                        opts = { method: 'GET', headers };
-                        const params = new URLSearchParams(body).toString();
-                        url += `?${params}`;
-                    } else if (endpoint === 'check-status' || endpoint === 'get-qr') {
+                    if(endpoint === 'init-app' || endpoint === 'check-status' || endpoint === 'get-qr') {
                         opts = { method: 'GET', headers };
                         const params = new URLSearchParams(body).toString();
                         url += `?${params}`;
@@ -470,10 +435,7 @@
                     const res = await fetch(url, opts);
                     if(!res.ok) throw new Error('Network error');
                     return await res.json();
-                } catch(e) {
-                    console.error(e);
-                    throw e;
-                }
+                } catch(e) { console.error(e); throw e; }
             }
         };
 
@@ -483,136 +445,87 @@
                 const r = document.documentElement.style;
                 r.setProperty('--theme-color', config.theme_color || '#2563EB');
                 r.setProperty('--theme-bg', config.bg_color || '#EFF6FF');
-                
                 tg.setHeaderColor(config.theme_color || '#ffffff');
                 tg.setBackgroundColor('#F9FAFB');
             },
-
             renderDashboard() {
-                // User info
                 if (State.user) {
                     document.getElementById('dash-username').innerText = `Привет, ${State.user.first_name}!`;
-                    if(State.user.photo_url) {
-                        document.getElementById('dashboard-avatar').innerHTML = `<img src="${State.user.photo_url}" class="w-full h-full object-cover">`;
-                    }
+                    if(State.user.photo_url) document.getElementById('dashboard-avatar').innerHTML = `<img src="${State.user.photo_url}" class="w-full h-full object-cover">`;
                 }
 
-                // Admin Section
                 const adminList = document.getElementById('dash-admin-list');
                 const adminSec = document.getElementById('dash-admin-section');
                 adminList.innerHTML = '';
                 
-                // Show Admin section if I own anything
                 if(State.owned && State.owned.length > 0) {
                     adminSec.classList.remove('hidden');
                     State.owned.forEach(biz => {
                         const div = document.createElement('div');
                         div.className = "bg-gray-900 text-white p-4 rounded-2xl flex items-center justify-between shadow-lg active:scale-95 transition-transform cursor-pointer";
-                        div.innerHTML = `
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center"><i data-lucide="briefcase" class="w-5 h-5"></i></div>
-                                <span class="font-bold">${biz.name}</span>
-                            </div>
-                            <i data-lucide="chevron-right" class="w-5 h-5 text-gray-500"></i>
-                        `;
+                        div.innerHTML = `<div class="flex items-center gap-3"><div class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center"><i data-lucide="briefcase" class="w-5 h-5"></i></div><span class="font-bold">${biz.name}</span></div><i data-lucide="chevron-right" class="w-5 h-5 text-gray-500"></i>`;
                         div.onclick = () => {
                             State.activeBusiness = { ...biz, role: 'admin' }; 
-                            // Ensure config is flat
-                            State.activeBusiness.theme_color = biz.config.theme_color;
-                            State.activeBusiness.target_count = biz.config.target_count;
-                            State.activeBusiness.logo_url = biz.config.logo_url;
-                            
+                            if(biz.config) {
+                                State.activeBusiness.theme_color = biz.config.theme_color;
+                                State.activeBusiness.target_count = biz.config.target_count;
+                                State.activeBusiness.logo_url = biz.config.logo_url;
+                            }
                             this.applyTheme(State.activeBusiness);
                             Router.go('admin');
                         };
                         adminList.appendChild(div);
                     });
-                } else {
-                    adminSec.classList.add('hidden');
-                }
+                } else { adminSec.classList.add('hidden'); }
 
-                // Wallet Section
                 const walletList = document.getElementById('dash-wallet-list');
                 walletList.innerHTML = '';
-                
                 if(State.member && State.member.length > 0) {
                     document.getElementById('dash-wallet-empty').classList.add('hidden');
                     State.member.forEach(w => {
                         const div = document.createElement('div');
                         div.className = "bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between active:scale-95 transition-transform cursor-pointer";
-                        div.innerHTML = `
-                            <div class="flex items-center gap-3">
-                                <img src="${w.logo || ''}" class="w-10 h-10 rounded-full bg-gray-50 object-cover border border-gray-100">
-                                <div>
-                                    <p class="font-bold text-gray-900">${w.name}</p>
-                                    <p class="text-xs text-gray-500">${w.balance}/${w.target} штампов</p>
-                                </div>
-                            </div>
-                            <i data-lucide="chevron-right" class="w-5 h-5 text-gray-300"></i>
-                        `;
+                        div.innerHTML = `<div class="flex items-center gap-3"><img src="${w.logo || ''}" class="w-10 h-10 rounded-full bg-gray-50 object-cover border border-gray-100"><div><p class="font-bold text-gray-900">${w.name}</p><p class="text-xs text-gray-500">${w.balance}/${w.target} штампов</p></div></div><i data-lucide="chevron-right" class="w-5 h-5 text-gray-300"></i>`;
                         div.onclick = () => {
                             State.activeBusiness = { 
-                                id: w.business_id, 
-                                name: w.name, 
-                                role: 'customer',
+                                id: w.business_id, name: w.name, role: 'customer',
                                 config: { theme_color: w.theme, target_count: w.target, logo_url: w.logo },
-                                // Mapped for easier access
-                                theme_color: w.theme,
-                                target_count: w.target,
-                                logo_url: w.logo,
-                                balance: w.balance,
-                                bonus_cups: w.bonus_cups
+                                theme_color: w.theme, target_count: w.target, logo_url: w.logo,
+                                balance: w.balance, bonus_cups: w.bonus_cups
                             };
                             this.applyTheme(State.activeBusiness);
                             Router.go('home');
                         };
                         walletList.appendChild(div);
                     });
-                } else {
-                    document.getElementById('dash-wallet-empty').classList.remove('hidden');
-                }
+                } else { document.getElementById('dash-wallet-empty').classList.remove('hidden'); }
             },
-
             renderHome() {
                 const b = State.activeBusiness;
                 document.getElementById('app-title').innerText = b.name;
                 document.getElementById('app-logo').src = b.logo_url || '';
                 document.getElementById('user-balance').innerText = b.balance;
                 document.getElementById('target-count').innerText = b.target_count;
-                
-                const left = Math.max(0, b.target_count - b.balance);
-                document.getElementById('stamps-left').innerText = left;
-
+                document.getElementById('stamps-left').innerText = Math.max(0, b.target_count - b.balance);
                 const bonusTxt = document.getElementById('home-bonus-count');
-                if(b.bonus_cups > 0) {
-                    bonusTxt.innerText = `${b.bonus_cups} доступно`;
-                    bonusTxt.classList.add('text-theme');
-                } else {
-                    bonusTxt.innerText = "Нет доступных";
-                    bonusTxt.classList.remove('text-theme');
-                }
+                if(b.bonus_cups > 0) { bonusTxt.innerText = `${b.bonus_cups} доступно`; bonusTxt.classList.add('text-theme'); }
+                else { bonusTxt.innerText = "Нет доступных"; bonusTxt.classList.remove('text-theme'); }
                 
-                // Context Admin Button: Check if I own THIS business
                 const isOwner = State.owned.some(o => o.id === b.id);
                 const adminBtn = document.getElementById('btn-context-admin');
                 if(isOwner) {
                     adminBtn.classList.remove('hidden');
-                    // Update click to switch context to admin mode for this business
                     adminBtn.onclick = () => {
                         const ownedRef = State.owned.find(o => o.id === b.id);
                         State.activeBusiness = { ...ownedRef, role: 'admin', theme_color: ownedRef.config.theme_color };
                         Router.go('admin');
                     }
-                } else {
-                    adminBtn.classList.add('hidden');
-                }
+                } else { adminBtn.classList.add('hidden'); }
             },
-
             renderCard() {
                 const grid = document.getElementById('stamps-grid');
                 grid.innerHTML = '';
                 const b = State.activeBusiness;
-                
                 for(let i=1; i<=b.target_count; i++) {
                     const active = i <= b.balance;
                     const el = document.createElement('div');
@@ -622,171 +535,131 @@
                 }
                 lucide.createIcons();
             },
-
             renderBonuses() {
                 document.getElementById('bonus-cups-big').innerText = State.activeBusiness.bonus_cups;
                 document.getElementById('btn-redeem').disabled = State.activeBusiness.bonus_cups <= 0;
             },
-
             renderSuccess() {
                 const isRedeem = State.qrSession?.intent === 'REDEEM';
                 const b = State.activeBusiness;
                 const title = document.getElementById('success-title');
                 const msg = document.getElementById('success-message');
-
-                if (isRedeem) {
-                    title.innerText = "Бонус списан!";
-                    msg.innerText = "Наслаждайтесь вашим кофе ☕️";
-                } else {
-                    // Earn logic
-                    if (b.balance === 0 && b.bonus_cups > 0) {
-                        title.innerText = "🎉 Подарок!";
-                        msg.innerText = "Вы накопили достаточно штампов!";
-                    } else {
-                        title.innerText = "Штамп получен!";
-                        msg.innerText = `Ваш баланс: ${b.balance} из ${b.target_count}`;
-                    }
+                if (isRedeem) { title.innerText = "Бонус списан!"; msg.innerText = "Наслаждайтесь вашим кофе ☕️"; }
+                else {
+                    if (b.balance === 0 && b.bonus_cups > 0) { title.innerText = "🎉 Подарок!"; msg.innerText = "Вы накопили достаточно штампов!"; }
+                    else { title.innerText = "Штамп получен!"; msg.innerText = `Ваш баланс: ${b.balance} из ${b.target_count}`; }
                 }
             }
         };
 
-        // --- QR MANAGER ---
+        // --- QR MANAGER (REVERTED TO ORIGINAL) ---
+        // Использование оригинальной логики обработки ответа
         const QRManager = {
             interval: null,
-            
             async init(intent) {
                 const b = State.activeBusiness;
-                State.qrSession = { intent }; // Store for success view
+                State.qrSession = { intent };
                 document.getElementById('qr-loader').classList.remove('hidden');
                 document.getElementById('qr-hint').innerText = intent === 'REDEEM' ? 'Списание бонуса' : 'Накопление штампа';
                 
                 try {
                     const res = await API.call('get-qr', { intent, business_id: b.id });
-                    const session = Array.isArray(res) ? res[0] : res;
+                    
+                    // ORIGINAL LOGIC: N8N returns an array of items usually
+                    const data = Array.isArray(res) ? res[0] : res;
+                    const sid = data.session_id;
+
+                    if (!sid) throw new Error("No session ID in response");
                     
                     document.getElementById('qrcode').innerHTML = '';
                     new QRCode(document.getElementById("qrcode"), {
-                        text: JSON.stringify({ sid: session.session_id }),
+                        text: JSON.stringify({ sid }),
                         width: 200, height: 200, colorDark: "#000000", colorLight: "#ffffff"
                     });
                     
                     document.getElementById('qr-loader').classList.add('hidden');
-                    this.poll(session.session_id, intent);
+                    this.poll(sid, intent);
                 } catch(e) {
+                    console.error(e);
                     tg.showAlert("Ошибка генерации QR");
                     Router.back();
                 }
             },
-
             poll(sid, intent) {
                 let attempts = 0;
-                // Backoff strategy: 1s, 2s, 3s, 5s, 5s...
                 const delays = [1000, 2000, 3000, 5000];
-                
                 const check = async () => {
                     if(!document.getElementById('view-qr').classList.contains('active')) return;
-                    
                     try {
                         const res = await API.call('check-status', { session_id: sid });
                         const data = Array.isArray(res) ? res[0] : res;
                         
                         if(data.status === 'USED') {
                             tg.HapticFeedback.notificationOccurred('success');
-                            
-                            // Update local state
                             State.activeBusiness.balance = data.balance;
                             State.activeBusiness.bonus_cups = data.bonus_cups;
-                            
-                            // Replace current history to home, then show success
                             Router.history.pop(); 
                             document.querySelectorAll('.page').forEach(v => v.classList.remove('active'));
-                            
-                            // Show Success View instead of Home
                             Router.go('success');
                             return;
                         }
                     } catch(e) {}
-
                     attempts++;
                     const delay = delays[Math.min(attempts, delays.length-1)];
                     this.interval = setTimeout(check, delay);
                 };
-                
                 check();
             },
-
-            stop() {
-                if(this.interval) clearTimeout(this.interval);
-            }
+            stop() { if(this.interval) clearTimeout(this.interval); }
         };
 
         // --- ADMIN MANAGER ---
         const AdminManager = {
             sessionId: null,
-
             scan() {
                 tg.showScanQrPopup({ text: "Наведите на QR клиента" }, async (text) => {
                     tg.closeScanQrPopup();
                     try {
                         const json = JSON.parse(text);
                         if(!json.sid) throw new Error();
-                        
                         tg.MainButton.showProgress();
                         const res = await API.call('scan-qr', { qr_session: json.sid });
                         tg.MainButton.hideProgress();
                         
                         const r = Array.isArray(res) ? res[0].result : res.result;
-
-                        if(r.status === 'success') {
-                            tg.showAlert(r.message);
-                        } else if (r.status === 'confirmation_required') {
+                        if(r.status === 'success') tg.showAlert(r.message);
+                        else if (r.status === 'confirmation_required') {
                             this.sessionId = json.sid;
                             document.getElementById('modal-conflict').classList.remove('hidden');
-                        } else {
-                            tg.showAlert(r.message || "Ошибка");
-                        }
-                    } catch(e) {
-                        tg.showAlert("Некорректный QR");
-                    }
+                        } else tg.showAlert(r.message || "Ошибка");
+                    } catch(e) { tg.showAlert("Некорректный QR"); }
                     return true;
                 });
             },
-
             async resolve(action) {
                 document.getElementById('modal-conflict').classList.add('hidden');
                 try {
                     const res = await API.call('scan-qr', { qr_session: this.sessionId, action });
                     const r = Array.isArray(res) ? res[0].result : res.result;
                     tg.showAlert(r.message);
-                } catch(e) {
-                    tg.showAlert("Ошибка выполнения");
-                }
+                } catch(e) { tg.showAlert("Ошибка выполнения"); }
             },
-
             showInvite() {
                 const b = State.activeBusiness;
                 const link = `https://t.me/${BOT_USERNAME}/app?startapp=${b.id}`;
                 document.getElementById('invite-link').innerText = link;
                 document.getElementById('invite-qr').innerHTML = '';
-                new QRCode(document.getElementById("invite-qr"), {
-                    text: link, width: 180, height: 180
-                });
+                new QRCode(document.getElementById("invite-qr"), { text: link, width: 180, height: 180 });
                 document.getElementById('modal-invite').classList.remove('hidden');
             },
-
             initSettings() {
                 const b = State.activeBusiness;
-                // We need to fetch full config maybe? or use partial from State
                 document.getElementById('set-name').value = b.name;
                 document.getElementById('set-color').value = b.theme_color || '#2563EB';
                 document.getElementById('set-color-val').innerText = b.theme_color || '#2563EB';
-                
-                document.getElementById('set-color').addEventListener('input', (e) => {
-                     document.getElementById('set-color-val').innerText = e.target.value;
-                });
+                document.getElementById('set-color').addEventListener('input', (e) => document.getElementById('set-color-val').innerText = e.target.value);
                 this.selectTarget(b.target_count || 6);
             },
-            
             selectTarget(n) {
                 State.tempTarget = n;
                 document.querySelectorAll('.target-btn').forEach(b => {
@@ -794,34 +667,16 @@
                     else b.classList.remove('bg-blue-50', 'border-blue-500', 'text-blue-600');
                 });
             },
-
             async save() {
                 const b = State.activeBusiness;
-                const body = {
-                    settings: {
-                        name: document.getElementById('set-name').value,
-                        config: {
-                            theme_color: document.getElementById('set-color').value,
-                            target_count: State.tempTarget
-                        }
-                    }
-                };
-                
+                const body = { settings: { name: document.getElementById('set-name').value, config: { theme_color: document.getElementById('set-color').value, target_count: State.tempTarget } } };
                 try {
                     await API.call('save-settings', body);
                     tg.showAlert("Сохранено!");
-                    
-                    // Update Local State
                     const ownedRef = State.owned.find(o => o.id === b.id);
-                    if(ownedRef) {
-                        ownedRef.name = body.settings.name;
-                        ownedRef.config.theme_color = body.settings.config.theme_color;
-                        ownedRef.config.target_count = body.settings.config.target_count;
-                    }
+                    if(ownedRef) { ownedRef.name = body.settings.name; ownedRef.config.theme_color = body.settings.config.theme_color; ownedRef.config.target_count = body.settings.config.target_count; }
                     Router.back();
-                } catch(e) {
-                    tg.showAlert("Ошибка сохранения");
-                }
+                } catch(e) { tg.showAlert("Ошибка сохранения"); }
             }
         };
 
@@ -829,8 +684,9 @@
         async function start() {
             tg.expand();
             tg.BackButton.onClick(() => Router.back());
-
             const user = tg.initDataUnsafe?.user;
+            
+            // Allow debugging without Telegram
             if(!user) {
                 document.getElementById('stub-view').classList.remove('hidden');
                 document.getElementById('loader').classList.add('hidden');
@@ -839,57 +695,36 @@
                 return;
             }
             State.user = user;
-
+            
             const startParam = tg.initDataUnsafe?.start_param || "";
-
             try {
                 const res = await API.call('init-app', { start_param: startParam });
+                
+                // Parsing logic compatible with n8n array response
                 let data = Array.isArray(res) ? res[0] : res;
-                if (data.data) data = data.data; // Unwrap n8n wrapper
+                // If nested inside 'register_or_get_customer' or 'data' wrapper (depends on n8n node settings)
+                if (data.data) data = data.data; 
                 else if (data.register_or_get_customer) data = data.register_or_get_customer;
                 
-                // [FIX v1.7] Compatible parsing
                 State.owned = data.owned_businesses || [];
                 State.member = data.member_businesses || data.wallets || [];
-                
                 const isOwner = State.owned.length > 0;
                 const isMember = State.member.length > 0;
                 const targetId = data.target_business_id;
 
-                // 1. Target ID (Deep Link)
+                // 1. Deep Link Priority
                 if (targetId) {
                     const targetBiz = State.member.find(m => m.business_id === targetId);
-                    if (targetBiz) {
-                        enterBusiness(targetBiz);
-                        return;
-                    }
-                    // If target business is owned but not joined as member?
+                    if (targetBiz) { enterBusiness(targetBiz); return; }
                     const ownedBiz = State.owned.find(o => o.id === targetId);
-                    if(ownedBiz) {
-                         enterAdmin(ownedBiz);
-                         return;
-                    }
+                    if(ownedBiz) { enterAdmin(ownedBiz); return; }
                 }
 
-                // 2. Hybrid Dashboard
-                if (isOwner && isMember) {
-                    showDashboard();
-                }
-                // 3. Pure Owner
-                else if (isOwner) {
-                    // If 1 business -> Auto Enter Admin, else Dashboard
-                    if(State.owned.length === 1) enterAdmin(State.owned[0]);
-                    else showDashboard();
-                }
-                // 4. Pure Customer
-                else if (isMember) {
-                    if (State.member.length === 1) enterBusiness(State.member[0]);
-                    else showDashboard();
-                }
-                // 5. New User
-                else {
-                    showDashboard(); // Will show empty state
-                }
+                // 2. Routing Matrix
+                if (isOwner && isMember) showDashboard();
+                else if (isOwner) { if(State.owned.length === 1) enterAdmin(State.owned[0]); else showDashboard(); }
+                else if (isMember) { if(State.member.length === 1) enterBusiness(State.member[0]); else showDashboard(); }
+                else showDashboard(); // Empty state
 
             } catch(e) {
                 console.error(e);
@@ -900,24 +735,17 @@
             }
         }
         
-        // Helpers for Router logic
         function showDashboard() {
             document.getElementById('loader').classList.add('hidden');
             document.body.style.visibility = 'visible';
             document.body.style.opacity = '1';
             Router.go('dashboard');
         }
-        
         function enterBusiness(biz) {
             State.activeBusiness = {
-                id: biz.business_id,
-                name: biz.name,
-                role: 'customer',
-                theme_color: biz.theme,
-                target_count: biz.target,
-                logo_url: biz.logo,
-                balance: biz.balance,
-                bonus_cups: biz.bonus_cups
+                id: biz.business_id, name: biz.name, role: 'customer',
+                theme_color: biz.theme, target_count: biz.target, logo_url: biz.logo,
+                balance: biz.balance, bonus_cups: biz.bonus_cups
             };
             UIManager.applyTheme(State.activeBusiness);
             document.getElementById('loader').classList.add('hidden');
@@ -925,10 +753,8 @@
             document.body.style.opacity = '1';
             Router.go('home');
         }
-        
         function enterAdmin(biz) {
              State.activeBusiness = { ...biz, role: 'admin' };
-             // Flat map config for easier access
              if(biz.config) {
                  State.activeBusiness.theme_color = biz.config.theme_color;
                  State.activeBusiness.target_count = biz.config.target_count;
@@ -945,3 +771,5 @@
     </script>
 </body>
 </html>
+
+

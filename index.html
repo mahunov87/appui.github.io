@@ -495,6 +495,7 @@
     <script>
         // --- CONFIG ---
         const API_BASE = 'https://n8n.inflio.xyz/webhook';
+        // ⚠️ ЗАМЕНИТЕ НА ВАШЕГО БОТА (БЕЗ @)
         const BOT_USERNAME = 'SeldonLoya_bot'; 
         const tg = window.Telegram.WebApp;
         
@@ -866,7 +867,9 @@
             conflictSessionId: null,
 
             showInviteQR() {
-                const link = `https://t.me/${BOT_USERNAME}/app?startapp=${State.businessId}`;
+                // FIX: Убрали /app, чтобы использовать приложение по умолчанию
+                // Для этого в BotFather кнопка меню должна быть настроена как Web App
+                const link = `https://t.me/${BOT_USERNAME}?startapp=${State.businessId}`;
                 document.getElementById('invite-link-text').innerText = link;
                 document.getElementById('invite-qrcode').innerHTML = '';
                 

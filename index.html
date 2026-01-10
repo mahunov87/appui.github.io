@@ -30,6 +30,7 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
             -webkit-tap-highlight-color: transparent;
             background-color: #F9FAFB;
+            /* Anti-FOUC: Скрываем контент до полной инициализации JS */
             visibility: hidden; 
             opacity: 0;
             transition: opacity 0.3s ease;
@@ -62,6 +63,7 @@
             100% { transform: scale(1); opacity: 1; }
         }
 
+        /* Custom Scrollbar hide */
         .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
@@ -70,7 +72,7 @@
     <!-- === LOADER === -->
     <div id="loader" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white">
         <div class="w-10 h-10 border-4 border-gray-100 border-t-blue-600 rounded-full animate-spin mb-4"></div>
-        <p class="text-gray-400 text-sm font-medium animate-pulse">Загрузка...</p>
+        <p class="text-gray-400 text-sm font-medium animate-pulse">Загрузка данных...</p>
     </div>
 
     <!-- === DESKTOP STUB === -->
@@ -94,16 +96,20 @@
 
     <!-- ================= VIEWS ================= -->
 
-    <!-- [UPDATED] 0. DASHBOARD (HYBRID HUB) -->
+    <!-- [NEW] 0. DASHBOARD (HYBRID HUB) -->
+    <!-- Этот экран заменяет старый Wallet View для гибридных пользователей -->
     <div id="view-dashboard" class="page px-5 py-6">
         <header class="flex items-center justify-between mb-8">
-            <h1 class="text-2xl font-black text-gray-900">Главное меню</h1>
+            <div>
+                <h1 class="text-2xl font-black text-gray-900">Главное меню</h1>
+                <p class="text-sm text-gray-500" id="dash-username">Привет!</p>
+            </div>
             <div id="dashboard-avatar" class="w-10 h-10 bg-gray-200 rounded-full overflow-hidden"></div>
         </header>
 
         <!-- Admin Section -->
         <div id="dash-admin-section" class="mb-8 hidden">
-            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Мой Бизнес</p>
+            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 pl-1">Мой Бизнес</p>
             <div id="dash-admin-list" class="space-y-3">
                 <!-- Injected via JS -->
             </div>
@@ -111,14 +117,15 @@
 
         <!-- Wallet Section -->
         <div id="dash-wallet-section" class="flex-1">
-            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Мои Карты</p>
+            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 pl-1">Мои Карты</p>
             <div id="dash-wallet-list" class="space-y-3">
                 <!-- Injected via JS -->
             </div>
             
-            <div id="dash-wallet-empty" class="hidden py-8 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                <i data-lucide="wallet" class="w-8 h-8 text-gray-300 mx-auto mb-2"></i>
-                <p class="text-gray-400 text-sm">У вас пока нет карт</p>
+            <div id="dash-wallet-empty" class="hidden py-12 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                <i data-lucide="wallet" class="w-10 h-10 text-gray-300 mx-auto mb-3"></i>
+                <h3 class="text-gray-900 font-bold mb-1">Кошелек пуст</h3>
+                <p class="text-gray-400 text-xs px-6">Отсканируйте QR-код в заведении, чтобы добавить первую карту.</p>
             </div>
         </div>
     </div>
@@ -127,6 +134,7 @@
     <div id="view-home" class="page px-5 py-6">
         <header class="flex items-center justify-between mb-6">
             <div class="flex items-center gap-3">
+                <!-- Кнопка назад ведет на Дашборд, если карт > 1 или если мы админ -->
                 <button onclick="Router.go('dashboard')" class="p-1 -ml-1 text-gray-400 active:scale-90 transition-transform">
                     <i data-lucide="chevron-left" class="w-6 h-6"></i>
                 </button>
@@ -137,15 +145,15 @@
                 </div>
             </div>
             
-            <!-- Admin Shortcut (Only if owner of THIS business) -->
-            <button id="btn-context-admin" onclick="Router.go('admin')" class="hidden w-9 h-9 bg-gray-900 text-white rounded-full flex items-center justify-center shadow-md active:scale-90">
-                <i data-lucide="settings" class="w-4 h-4"></i>
+            <!-- Кнопка "Настройки" (только если владелец ЭТОГО бизнеса) -->
+            <button id="btn-context-admin" onclick="Router.go('admin')" class="hidden w-10 h-10 bg-gray-900 text-white rounded-full flex items-center justify-center shadow-md active:scale-90 transition-transform">
+                <i data-lucide="settings" class="w-5 h-5"></i>
             </button>
         </header>
 
         <!-- Stats Card -->
-        <div class="bg-gray-900 rounded-3xl p-6 text-white shadow-xl shadow-gray-200 mb-6 relative overflow-hidden">
-            <div class="absolute -top-10 -right-10 w-40 h-40 bg-theme opacity-20 rounded-full blur-3xl"></div>
+        <div class="bg-gray-900 rounded-3xl p-6 text-white shadow-xl shadow-gray-200 mb-6 relative overflow-hidden group">
+            <div class="absolute -top-10 -right-10 w-40 h-40 bg-theme opacity-20 rounded-full blur-3xl group-hover:opacity-30 transition-opacity"></div>
             <div class="relative z-10 flex justify-between items-end">
                 <div>
                     <p class="text-gray-400 text-xs font-bold uppercase mb-1">Баланс</p>
@@ -416,6 +424,7 @@
                     if(viewId === 'admin-settings') AdminManager.initSettings();
                 }
 
+                // Show back button logic
                 if(this.history.length > 1) tg.BackButton.show();
                 else tg.BackButton.hide();
                 
@@ -480,6 +489,14 @@
             },
 
             renderDashboard() {
+                // User info
+                if (State.user) {
+                    document.getElementById('dash-username').innerText = `Привет, ${State.user.first_name}!`;
+                    if(State.user.photo_url) {
+                        document.getElementById('dashboard-avatar').innerHTML = `<img src="${State.user.photo_url}" class="w-full h-full object-cover">`;
+                    }
+                }
+
                 // Admin Section
                 const adminList = document.getElementById('dash-admin-list');
                 const adminSec = document.getElementById('dash-admin-section');
@@ -525,7 +542,7 @@
                         div.className = "bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between active:scale-95 transition-transform cursor-pointer";
                         div.innerHTML = `
                             <div class="flex items-center gap-3">
-                                <img src="${w.logo}" class="w-10 h-10 rounded-full bg-gray-50 object-cover">
+                                <img src="${w.logo || ''}" class="w-10 h-10 rounded-full bg-gray-50 object-cover border border-gray-100">
                                 <div>
                                     <p class="font-bold text-gray-900">${w.name}</p>
                                     <p class="text-xs text-gray-500">${w.balance}/${w.target} штампов</p>
@@ -553,11 +570,6 @@
                     });
                 } else {
                     document.getElementById('dash-wallet-empty').classList.remove('hidden');
-                }
-                
-                // Avatar
-                if(State.user?.photo_url) {
-                    document.getElementById('dashboard-avatar').innerHTML = `<img src="${State.user.photo_url}" class="w-full h-full object-cover">`;
                 }
             },
 

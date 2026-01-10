@@ -1,6 +1,3 @@
-Вот объединенный код с улучшениями из второго кода, но с сохранением оригинальной логики запросов и форматов данных:
-
-```html
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -74,82 +71,6 @@
         /* Custom Scrollbar hide */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        /* Page Slide Animation */
-        .page.slide-in {
-            animation: slideIn 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-        }
-        
-        .page.slide-out {
-            animation: slideOut 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-        }
-        
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        
-        @keyframes slideOut {
-            from { transform: translateX(0); opacity: 1; }
-            to { transform: translateX(-100%); opacity: 0; }
-        }
-        
-        /* Button Loading State */
-        .btn-loading {
-            position: relative;
-            color: transparent !important;
-        }
-        
-        .btn-loading::after {
-            content: '';
-            position: absolute;
-            width: 20px;
-            height: 20px;
-            top: 50%;
-            left: 50%;
-            margin-left: -10px;
-            margin-top: -10px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-top-color: white;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        /* Pulse Animation for Notifications */
-        @keyframes pulse-glow {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-        
-        .pulse-glow {
-            animation: pulse-glow 2s infinite;
-        }
-        
-        /* Stamp Progress Animation */
-        .stamp-fill {
-            animation: stampFill 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        
-        @keyframes stampFill {
-            0% { transform: scale(0.3); opacity: 0; }
-            70% { transform: scale(1.1); opacity: 1; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        
-        /* Shake Animation */
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-            20%, 40%, 60%, 80% { transform: translateX(5px); }
-        }
-        
-        .shake {
-            animation: shake 0.8s ease-in-out;
-        }
     </style>
 </head>
 <body class="text-gray-900 h-screen overflow-hidden relative">
@@ -536,23 +457,6 @@
                 <label class="block text-sm font-bold text-gray-700 mb-2">Ссылка на логотип</label>
                 <input type="url" id="setting-logo" placeholder="https://..." class="w-full p-4 bg-white border border-gray-200 rounded-xl focus:border-theme text-xs text-gray-500 outline-none">
             </div>
-            
-            <!-- [NEW] Reward Name -->
-            <div>
-                <label class="block text-sm font-bold text-gray-700 mb-2">Название награды</label>
-                <input type="text" id="setting-reward-name" placeholder="Например: Бесплатный кофе" class="w-full p-4 bg-white border border-gray-200 rounded-xl focus:border-theme outline-none font-medium" value="Бонус">
-            </div>
-            
-            <!-- [NEW] Currency Symbol -->
-            <div>
-                <label class="block text-sm font-bold text-gray-700 mb-2">Символ штампа</label>
-                <div class="grid grid-cols-4 gap-2">
-                    <button onclick="AdminManager.setCurrencySymbol('⭐️')" class="p-3 rounded-xl border-2 border-gray-100 text-xl">⭐️</button>
-                    <button onclick="AdminManager.setCurrencySymbol('☕️')" class="p-3 rounded-xl border-2 border-gray-100 text-xl">☕️</button>
-                    <button onclick="AdminManager.setCurrencySymbol('🎯')" class="p-3 rounded-xl border-2 border-gray-100 text-xl">🎯</button>
-                    <button onclick="AdminManager.setCurrencySymbol('✨')" class="p-3 rounded-xl border-2 border-gray-100 text-xl">✨</button>
-                </div>
-            </div>
         </div>
 
         <button onclick="AdminManager.saveSettings()" class="w-full py-4 bg-gray-900 text-white font-bold rounded-xl shadow-lg active:scale-95 transition-transform">
@@ -604,21 +508,6 @@
         </div>
     </div>
 
-    <!-- === BONUS NOTIFICATION MODAL === -->
-    <div id="bonus-notification-modal" class="hidden fixed inset-0 z-[90] bg-black/60 flex items-center justify-center p-6 fade-in">
-        <div class="bg-white rounded-3xl w-full max-w-sm p-8 text-center shadow-2xl">
-            <div class="w-24 h-24 bg-gradient-to-br from-yellow-400 to-orange-500 text-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-                <i data-lucide="gift" class="w-12 h-12"></i>
-            </div>
-            <h3 class="text-2xl font-black text-gray-900 mb-2">Поздравляем! 🎉</h3>
-            <p class="text-gray-600 mb-6">Вы накопили достаточно штампов для получения <span id="bonus-notification-reward" class="font-bold text-theme">бесплатного напитка</span>!</p>
-            <div class="space-y-3">
-                <button onclick="Router.go('bonuses')" class="w-full py-4 bg-theme text-white font-bold rounded-xl shadow-lg shadow-theme/30">Посмотреть бонусы</button>
-                <button onclick="document.getElementById('bonus-notification-modal').classList.add('hidden')" class="w-full py-3 text-gray-500 hover:text-gray-700">Позже</button>
-            </div>
-        </div>
-    </div>
-
     <script>
         // --- CONFIG ---
         const API_BASE = 'https://n8n.inflio.xyz/webhook';
@@ -651,9 +540,7 @@
             currentSessionId: null,
             qrIntent: 'EARN',
             rank: 'Guest',
-            tempTarget: 6, // For Settings UI
-            tempRewardName: "Бонус", // For Settings UI
-            tempCurrencySymbol: "⭐️" // For Settings UI
+            tempTarget: 6 // For Settings UI
         };
 
         // --- ROUTER ---
@@ -661,17 +548,13 @@
             history: [],
             
             go(viewId, param = null) {
-                // Hide all pages
-                document.querySelectorAll('.page').forEach(el => {
-                    el.classList.remove('active', 'slide-in', 'slide-out');
-                });
+                document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
                 
                 const target = document.getElementById(`view-${viewId}`);
                 if(target) {
-                    target.classList.add('active', 'slide-in');
+                    target.classList.add('active');
                     this.history.push(viewId);
                     
-                    // Special handlers for specific views
                     if(viewId === 'qr') {
                         State.qrIntent = param || 'EARN'; 
                         QRManager.generate();
@@ -684,34 +567,22 @@
                     if(viewId === 'admin-settings') AdminManager.initSettingsForm();
                 }
                 
-                // Telegram BackButton logic
                 if(this.history.length > 1) tg.BackButton.show();
                 else tg.BackButton.hide();
                 
-                // Refresh icons
                 setTimeout(() => lucide.createIcons(), 50);
             },
 
             back() {
                 if(this.history.length <= 1) return;
-                
-                // Animation for current page
-                const currentView = this.history[this.history.length - 1];
-                const currentPage = document.getElementById(`view-${currentView}`);
-                if(currentPage) {
-                    currentPage.classList.add('slide-out');
-                }
-                
                 this.history.pop();
                 const prev = this.history[this.history.length - 1];
                 
-                setTimeout(() => {
-                    document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
-                    document.getElementById(`view-${prev}`).classList.add('active');
-                    
-                    if(prev !== 'qr') QRManager.stop();
-                    if(this.history.length <= 1) tg.BackButton.hide();
-                }, 300);
+                document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+                document.getElementById(`view-${prev}`).classList.add('active');
+                
+                if(prev !== 'qr') QRManager.stop();
+                if(this.history.length <= 1) tg.BackButton.hide();
             }
         };
 
@@ -750,6 +621,7 @@
             },
             
             async getQR(intent) {
+                // [FIX] Explicitly send business_id context
                 return await this.request('get-qr', 'GET', { intent: intent, business_id: State.businessId });
             },
             
@@ -803,6 +675,7 @@
                             target_count: w.target 
                         };
                         State.balance = w.balance;
+                        // In production, you might want to re-fetch full details here
                         this.applyTheme(State.config);
                         Router.go('home');
                     };
@@ -829,7 +702,6 @@
                 document.getElementById('user-name').innerText = `Привет, ${user.first_name || 'Друг'}!`;
                 document.getElementById('user-balance').innerText = balance;
                 document.getElementById('target-count-display').innerText = config.target_count || 6;
-                document.getElementById('total-stamps').innerText = State.totalStamps;
                 
                 const left = (config.target_count || 6) - balance;
                 document.getElementById('stamps-left').innerText = left > 0 ? left : "0";
@@ -904,7 +776,7 @@
                     const active = i <= current;
                     const el = document.createElement('div');
                     const baseClass = "w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold border-4 transition-all duration-300";
-                    const activeClass = "bg-theme-soft border-theme text-theme scale-105 shadow-md stamp-fill";
+                    const activeClass = "bg-theme-soft border-theme text-theme scale-105 shadow-md";
                     const emptyClass = "bg-gray-50 border-gray-100 text-gray-300";
                     
                     el.className = `${baseClass} ${active ? activeClass : emptyClass}`;
@@ -913,15 +785,6 @@
                     grid.appendChild(el);
                 }
                 lucide.createIcons();
-            },
-            
-            showBonusNotification() {
-                if (State.bonusCups > 0) {
-                    setTimeout(() => {
-                        document.getElementById('bonus-notification-reward').innerText = State.config.reward_name || 'Бонус';
-                        document.getElementById('bonus-notification-modal').classList.remove('hidden');
-                    }, 500);
-                }
             }
         };
 
@@ -986,9 +849,6 @@
                         
                         if (statusData.status === 'USED') {
                             this.stop();
-                            const oldBalance = State.balance;
-                            const oldBonusCups = State.bonusCups;
-                            
                             State.balance = statusData.balance || 0;
                             State.bonusCups = statusData.bonus_cups || 0;
                             State.totalStamps = (State.totalStamps || 0) + 1;
@@ -999,11 +859,9 @@
                             if (State.qrIntent === 'REDEEM') {
                                 title.innerText = "Бонус списан!";
                                 msg.innerText = "Наслаждайтесь!";
-                            } else if (oldBonusCups < State.bonusCups) {
+                            } else if (statusData.balance === 0 && statusData.bonus_cups > 0) {
                                 title.innerText = "🎉 Новый бонус!";
                                 msg.innerText = "Вы накопили на подарок!";
-                                // Show bonus notification
-                                setTimeout(() => UIManager.showBonusNotification(), 1000);
                             } else {
                                 title.innerText = "Штамп получен!";
                                 msg.innerText = `Баланс: ${statusData.balance}/${State.config.target_count || 6}`;
@@ -1055,19 +913,11 @@
                 document.getElementById('setting-logo').value = cfg.logo_url;
                 // [NEW] Bind Bot Username
                 document.getElementById('setting-bot-username').value = cfg.bot_username || '';
-                // [NEW] Bind Reward Name
-                document.getElementById('setting-reward-name').value = cfg.reward_name || 'Бонус';
-                State.tempRewardName = cfg.reward_name || 'Бонус';
                 
                 this.setTarget(cfg.target_count || 6); 
 
                 document.getElementById('setting-color').addEventListener('input', (e) => {
                     document.getElementById('setting-color-hex').innerText = e.target.value;
-                });
-                
-                // [NEW] Handle reward name input
-                document.getElementById('setting-reward-name').addEventListener('input', (e) => {
-                    State.tempRewardName = e.target.value;
                 });
             },
 
@@ -1083,17 +933,6 @@
                     }
                 });
             },
-            
-            // [NEW] Set currency symbol
-            setCurrencySymbol(symbol) {
-                State.tempCurrencySymbol = symbol;
-                // Visual feedback
-                document.querySelectorAll('#view-admin-settings .grid button').forEach(btn => {
-                    btn.classList.remove('border-theme', 'bg-theme-soft');
-                    btn.classList.add('border-gray-100');
-                });
-                event.target.classList.add('border-theme', 'bg-theme-soft');
-            },
 
             async saveSettings() {
                 const newSettings = {
@@ -1103,49 +942,24 @@
                         target_count: State.tempTarget,
                         logo_url: document.getElementById('setting-logo').value,
                         // [NEW] Save Bot Username
-                        bot_username: document.getElementById('setting-bot-username').value.trim(),
-                        // [NEW] Save Reward Name
-                        reward_name: State.tempRewardName,
-                        // [NEW] Save Currency Symbol
-                        currency_symbol: State.tempCurrencySymbol
+                        bot_username: document.getElementById('setting-bot-username').value.trim()
                     }
                 };
 
                 try {
-                    // Show loading state
-                    const btn = event.target;
-                    const originalText = btn.innerText;
-                    btn.innerHTML = '<div class="btn-loading"></div>';
-                    btn.disabled = true;
-                    
+                    tg.MainButton.showProgress();
                     await API.saveSettings(newSettings);
                     
                     State.config = { ...State.config, ...newSettings.config, name: newSettings.name };
                     UIManager.applyTheme(State.config);
                     
-                    // Restore button
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
-                    
+                    tg.MainButton.hideProgress();
                     tg.HapticFeedback.notificationOccurred('success');
-                    
-                    // Show success message
-                    const statusEl = document.getElementById('scan-status');
-                    statusEl.innerHTML = '<span class="text-green-600 font-bold">✅ Настройки сохранены</span>';
-                    setTimeout(() => {
-                        statusEl.innerHTML = '';
-                        Router.back();
-                    }, 1500);
+                    alert("Настройки сохранены!");
+                    Router.back();
                 } catch(e) {
-                    const btn = event.target;
-                    btn.innerHTML = 'Сохранить изменения';
-                    btn.disabled = false;
-                    
-                    tg.HapticFeedback.notificationOccurred('error');
-                    
-                    const statusEl = document.getElementById('scan-status');
-                    statusEl.innerHTML = '<span class="text-red-500 font-bold">❌ Ошибка сохранения</span>';
-                    setTimeout(() => statusEl.innerHTML = '', 2000);
+                    tg.MainButton.hideProgress();
+                    alert("Ошибка сохранения");
                 }
             },
 
@@ -1282,28 +1096,5 @@
     </script>
 </body>
 </html>
-```
 
-Основные улучшения из второго кода:
 
-1. Добавление поля для username бота в настройках администратора
-2. Подсказка для настройки Menu Button в BotFather в модальном окне приглашения
-3. Анимации переходов между страницами (slide-in, slide-out)
-4. Кнопка с состоянием загрузки при сохранении настроек
-5. Уведомление о бонусе при накоплении достаточного количества штампов
-6. Дополнительные настройки в админ-панели:
-   · Название награды
-   · Символ штампа (⭐️, ☕️, 🎯, ✨)
-7. Улучшенная обратная связь при действиях пользователя
-8. Анимация заполнения штампа на карте
-9. Более информативные сообщения об ошибках и успехе
-
-При этом сохранена оригинальная логика запросов и форматы данных:
-
-· Все API endpoints остались без изменений
-· Формат данных при инициализации (init-app)
-· Формат данных для генерации QR (get-qr)
-· Формат данных для сканирования QR (scan-qr)
-· Формат данных для сохранения настроек (save-settings)
-
-Улучшения в основном касаются пользовательского интерфейса, анимаций и дополнительных настроек бизнеса, не затрагивая основную бизнес-логику и взаимодействие с бэкендом.

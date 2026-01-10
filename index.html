@@ -94,7 +94,7 @@
             <i data-lucide="wifi-off" class="w-8 h-8"></i>
         </div>
         <h2 class="text-xl font-bold mb-2">Ошибка связи</h2>
-        <p class="text-gray-500 mb-6">Не удалось загрузить данные. Проверьте интернет.</p>
+        <p id="error-text" class="text-gray-500 mb-6">Не удалось загрузить данные.</p>
         <button onclick="window.location.reload()" class="px-6 py-3 bg-gray-900 text-white rounded-xl font-bold active:scale-95 transition-transform">
             Повторить
         </button>
@@ -102,7 +102,7 @@
 
     <!-- ================= VIEWS ================= -->
 
-    <!-- [UPDATED] 0. WALLET VIEW -->
+    <!-- [UPDATED] 0. WALLET VIEW (Split Design) -->
     <div id="view-wallet" class="page px-5 py-6">
         <header class="flex items-center justify-between mb-6">
             <h1 class="text-2xl font-black text-gray-900">Кошелек</h1>
@@ -111,7 +111,7 @@
             </div>
         </header>
 
-        <!-- Section: My Businesses (Top) -->
+        <!-- Section: My Businesses (Top - Dark Theme) -->
         <div id="wallet-group-owners" class="hidden mb-8">
             <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">Мой Бизнес</h3>
             <div id="wallet-list-owners" class="space-y-3">
@@ -119,7 +119,7 @@
             </div>
         </div>
 
-        <!-- Section: My Cards (Bottom) -->
+        <!-- Section: My Cards (Bottom - Light Theme) -->
         <div id="wallet-group-clients" class="hidden">
             <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">Мои Карты</h3>
             <div id="wallet-list-clients" class="space-y-3">
@@ -137,7 +137,7 @@
         </div>
     </div>
 
-    <!-- 1. HOME VIEW (DASHBOARD) -->
+    <!-- 1. HOME VIEW (Client Dashboard) -->
     <div id="view-home" class="page px-5 py-6">
         <header class="flex items-center justify-between mb-8">
             <div class="flex items-center gap-3">
@@ -153,7 +153,7 @@
                 </div>
             </div>
             
-            <!-- Admin Panel Button (Conditional) -->
+            <!-- Admin Panel Button (Fallback if somehow reached) -->
             <button id="btn-admin-panel" onclick="Router.go('admin')" class="hidden w-10 h-10 bg-gray-900 text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform">
                 <i data-lucide="settings" class="w-5 h-5"></i>
             </button>
@@ -316,6 +316,11 @@
 
             <div class="bg-white p-5 rounded-3xl shadow-2xl mb-8 relative">
                 <div id="qrcode"></div>
+                <!-- Error placeholder in case generation fails -->
+                <div id="qr-error-msg" class="hidden absolute inset-0 bg-white flex flex-col items-center justify-center text-red-500 text-center p-4">
+                    <p class="font-bold text-sm">Ошибка генерации</p>
+                </div>
+
                 <div id="qr-expired" class="hidden absolute inset-0 bg-white/95 flex flex-col items-center justify-center rounded-3xl text-center p-4">
                     <i data-lucide="refresh-cw" class="w-8 h-8 text-gray-400 mb-2"></i>
                     <p class="text-gray-900 font-bold mb-2">Код истек</p>
@@ -377,11 +382,11 @@
         </div>
     </div>
 
-    <!-- === ADMIN VIEW === -->
+    <!-- === ADMIN VIEW (Business Dashboard) === -->
     <div id="view-admin" class="page px-6 py-6 flex flex-col">
         <div class="flex items-center justify-between mb-8">
             <div class="flex items-center gap-2">
-                <button onclick="Router.back()" class="p-2 -ml-2 text-gray-400 hover:text-gray-900"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
+                <button onclick="Router.go('wallet')" class="p-2 -ml-2 text-gray-400 hover:text-gray-900"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
                 <h2 class="text-2xl font-bold text-gray-900">Кабинет Владельца</h2>
             </div>
             <div class="px-3 py-1 bg-gray-100 rounded-full text-xs font-bold text-gray-500">OWNER</div>
@@ -539,9 +544,15 @@
                 };
                 State.balance = walletItem.balance;
                 State.isAdmin = !!walletItem.is_owner;
-
+                
                 UIManager.applyTheme(State.config);
-                Router.go('home');
+                
+                // [FIX] Separate Logic: Owners -> Admin Panel, Clients -> Home
+                if (State.isAdmin) {
+                    Router.go('admin');
+                } else {
+                    Router.go('home');
+                }
             }
         };
 
@@ -565,7 +576,9 @@
                     if(viewId === 'bonuses') UIManager.renderBonuses();
                     if(viewId === 'wallet') UIManager.renderWallet();
                     if(viewId === 'admin-settings') AdminManager.initSettingsForm();
+                    // Admin view might need re-rendering if dynamic data is added later
                 }
+                
                 if(this.history.length > 1) tg.BackButton.show();
                 else tg.BackButton.hide();
                 setTimeout(() => lucide.createIcons(), 50);
@@ -581,7 +594,7 @@
             }
         };
 
-        // --- API LAYER (RESTORED TO ORIGINAL FORMAT) ---
+        // --- API LAYER ---
         const API = {
             async request(endpoint, method = 'GET', body = null) {
                 const headers = {
@@ -615,12 +628,13 @@
                 return await this.request('save-settings', 'POST', { settings });
             },
             
-            // [RESTORED] Original signature
             async getQR(intent) {
+                // Ensure business_id is passed to fix Owner context issues
                 return await this.request('get-qr', 'GET', { intent: intent, business_id: State.businessId });
             },
             
             async checkStatus(sessionId) {
+                if (!sessionId) throw new Error("Session ID is missing");
                 return await this.request('check-status', 'GET', { session_id: sessionId });
             },
 
@@ -647,7 +661,6 @@
             },
 
             renderWallet() {
-                // Clear containers
                 const ownerList = document.getElementById('wallet-list-owners');
                 const clientList = document.getElementById('wallet-list-clients');
                 ownerList.innerHTML = '';
@@ -669,21 +682,30 @@
                 // Helper renderer
                 const renderCard = (w, container, isOwnerSection) => {
                     const el = document.createElement('div');
-                    const bgClass = isOwnerSection ? 'bg-white border-amber-200 shadow-sm' : 'bg-white border-gray-100 shadow-sm';
                     
+                    // [UPDATED] Dark Theme for Owners, Light for Clients
+                    const bgClass = isOwnerSection 
+                        ? 'bg-gray-900 border-gray-800 text-white shadow-lg shadow-gray-200' 
+                        : 'bg-white border-gray-100 text-gray-900 shadow-sm';
+                    
+                    const textClass = isOwnerSection ? 'text-white' : 'text-gray-900';
+                    const subTextClass = isOwnerSection ? 'text-gray-400' : 'text-gray-500';
+                    const iconBg = isOwnerSection ? 'bg-gray-800' : 'bg-gray-50';
+                    const arrowColor = isOwnerSection ? 'text-gray-500' : 'text-gray-400';
+
                     el.className = `p-4 rounded-2xl border ${bgClass} flex items-center justify-between active:scale-95 transition-transform cursor-pointer`;
                     el.onclick = () => Actions.enterBusiness(w);
                     
                     el.innerHTML = `
                         <div class="flex items-center gap-3">
-                            <img src="${w.logo || 'https://via.placeholder.com/40'}" class="w-12 h-12 rounded-full bg-gray-50 object-cover border border-gray-100">
+                            <img src="${w.logo || 'https://via.placeholder.com/40'}" class="w-12 h-12 rounded-full ${isOwnerSection ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-100'} object-cover border">
                             <div>
-                                <p class="font-bold text-gray-900 text-lg leading-tight">${w.name}</p>
-                                <p class="text-sm text-gray-500 font-medium">${w.balance} / ${w.target} штампов</p>
+                                <p class="font-bold ${textClass} text-lg leading-tight">${w.name}</p>
+                                <p class="text-sm ${subTextClass} font-medium">${w.balance} / ${w.target} штампов</p>
                             </div>
                         </div>
-                        <div class="w-8 h-8 bg-gray-50 rounded-full flex items-center justify-center">
-                            <i data-lucide="chevron-right" class="text-gray-400 w-5 h-5"></i>
+                        <div class="w-8 h-8 ${iconBg} rounded-full flex items-center justify-center">
+                            <i data-lucide="chevron-right" class="${arrowColor} w-5 h-5"></i>
                         </div>
                     `;
                     container.appendChild(el);
@@ -730,20 +752,10 @@
                 document.getElementById('user-rank').innerText = rank;
                 State.rank = rank;
                 
-                // Back Button Logic
                 if (State.mode === 'wallet') {
                     document.getElementById('btn-back-wallet').classList.remove('hidden');
                 } else {
                     document.getElementById('btn-back-wallet').classList.add('hidden');
-                }
-
-                // Admin Button Logic
-                if (State.isAdmin) {
-                    document.getElementById('btn-admin-panel').classList.remove('hidden');
-                    document.getElementById('user-icon-placeholder').classList.add('hidden');
-                } else {
-                     document.getElementById('btn-admin-panel').classList.add('hidden');
-                     document.getElementById('user-icon-placeholder').classList.remove('hidden');
                 }
             },
 
@@ -805,13 +817,14 @@
             }
         };
 
-        // --- QR LOGIC (UNCHANGED) ---
+        // --- QR LOGIC (FIXED) ---
         const QRManager = {
             pollInterval: null,
             timerInterval: null,
             
             async generate() {
                 document.getElementById('qr-expired').classList.add('hidden');
+                document.getElementById('qr-error-msg').classList.add('hidden');
                 document.getElementById('qrcode').innerHTML = '';
                 
                 const loading = document.createElement('div');
@@ -821,12 +834,22 @@
 
                 try {
                     const data = await API.getQR(State.qrIntent);
-                    const session = Array.isArray(data) ? data[0] : data;
-                    State.currentSessionId = session.session_id;
+                    
+                    // [FIX] Robust parsing to prevent "undefined" error
+                    // Handle various n8n response structures (array or object)
+                    const sessionData = Array.isArray(data) ? data[0] : data;
+                    
+                    // Deep check for session_id to avoid "invalid input syntax for type uuid" later
+                    if (!sessionData || !sessionData.session_id) {
+                         console.error("Invalid QR Data:", data);
+                         throw new Error("API did not return a valid session ID");
+                    }
+
+                    State.currentSessionId = sessionData.session_id;
 
                     document.getElementById('qrcode').innerHTML = '';
                     new QRCode(document.getElementById("qrcode"), {
-                        text: JSON.stringify({ sid: session.session_id }),
+                        text: JSON.stringify({ sid: sessionData.session_id }),
                         width: 200,
                         height: 200,
                         colorDark : "#1F2937",
@@ -837,8 +860,11 @@
                     this.startTimer();
                     this.startPolling();
                 } catch (e) {
-                    console.error(e);
-                    document.getElementById('qrcode').innerText = "Ошибка сети";
+                    console.error("QR Gen Error:", e);
+                    document.getElementById('qrcode').innerHTML = '';
+                    document.getElementById('qr-error-msg').classList.remove('hidden');
+                    // Show helpful error if possible
+                    document.getElementById('qr-error-msg').querySelector('p').innerText = "Ошибка генерации QR";
                 }
             },
 
@@ -861,6 +887,8 @@
                 if(this.pollInterval) clearInterval(this.pollInterval);
                 this.pollInterval = setInterval(async () => {
                     try {
+                        if (!State.currentSessionId) return; // Guard
+                        
                         const data = await API.checkStatus(State.currentSessionId);
                         const statusData = Array.isArray(data) ? data[0] : data;
                         
@@ -1058,7 +1086,7 @@
                     document.getElementById('loader').classList.add('hidden');
                     
                     // [UPDATED] Smart Redirect Logic
-                    // 1. If only 1 card AND user is NOT owner -> Auto Enter
+                    // 1. If only 1 card AND user is NOT owner -> Auto Enter Client View
                     if (State.wallets.length === 1 && !State.wallets[0].is_owner) {
                         Actions.enterBusiness(State.wallets[0]);
                         return;
@@ -1078,7 +1106,13 @@
 
                     UIManager.applyTheme(State.config);
                     document.getElementById('loader').classList.add('hidden');
-                    Router.go('home');
+                    
+                    // Direct link context
+                    if (State.isAdmin) {
+                        Router.go('admin');
+                    } else {
+                        Router.go('home');
+                    }
                 }
 
             } catch (e) {
@@ -1092,3 +1126,5 @@
     </script>
 </body>
 </html>
+
+
